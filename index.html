@@ -2,8 +2,10 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>MSFS Check In</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<meta name="theme-color" content="#070b16" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<title>MSFS Check In</title>
 
   <style>
     :root {
@@ -25,17 +27,24 @@
       box-sizing: border-box;
     }
 
-    body {
-      margin: 0;
-      min-height: 100vh;
-      background:
-        radial-gradient(circle at top left, rgba(36, 83, 255, 0.18), transparent 34%),
-        radial-gradient(circle at top right, rgba(0, 210, 140, 0.12), transparent 30%),
-        linear-gradient(180deg, #080c18 0%, #06101a 100%);
-      color: var(--text);
-      font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-      overflow-x: hidden;
-    }
+    html {
+  min-height: 100%;
+  background: #070b16;
+}
+
+body {
+  margin: 0;
+  min-height: 100svh;
+  background:
+    radial-gradient(circle at top left, rgba(36, 83, 255, 0.15), transparent 32%),
+    radial-gradient(circle at top right, rgba(0, 210, 140, 0.1), transparent 30%),
+    linear-gradient(180deg, #080c18 0%, #06101a 100%);
+  background-color: #070b16;
+  background-attachment: fixed;
+  color: var(--text);
+  font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  overflow-x: hidden;
+}
 
     button,
     input {
@@ -43,15 +52,31 @@
     }
 
     .app {
-      width: min(100%, 760px);
-      min-height: 100vh;
-      margin: 0 auto;
-      padding: 22px 18px 40px;
-    }
+  width: min(100%, 760px);
+  min-height: 100svh;
+  margin: 0 auto;
+  padding: calc(18px + env(safe-area-inset-top)) 18px calc(32px + env(safe-area-inset-bottom));
+}
 
     .hidden {
-      display: none !important;
-    }
+  display: none !important;
+}
+
+.page-view {
+  animation: pageIn 0.26s ease both;
+}
+
+@keyframes pageIn {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
 
     .topbar {
       display: flex;
@@ -523,36 +548,152 @@
     }
 
     @media (max-width: 560px) {
-      .app {
-        padding: 18px 14px 32px;
-      }
+  .app {
+    padding: calc(18px + env(safe-area-inset-top)) 14px calc(30px + env(safe-area-inset-bottom));
+  }
 
-      .ready-card,
-      .selected-flight-card {
-        grid-template-columns: 42px 1fr;
-      }
+  .topbar {
+    align-items: flex-start;
+    margin-bottom: 18px;
+  }
 
-      .reservation {
-        grid-column: 2;
-        text-align: left;
-        font-size: 20px;
-      }
+  h1 {
+    font-size: clamp(31px, 9vw, 42px);
+    line-height: 0.98;
+  }
 
-      .details-grid {
-        grid-template-columns: 1fr;
-      }
+  .eyebrow {
+    font-size: 12px;
+    letter-spacing: 0.16em;
+  }
 
-      .step {
-        font-size: 10px;
-        padding: 6px;
-      }
-    }
+  .flow-header {
+    gap: 12px;
+    margin-bottom: 16px;
+  }
+
+  .back-button {
+    width: 52px;
+    height: 52px;
+    font-size: 28px;
+  }
+
+  .ready-card,
+  .selected-flight-card {
+    grid-template-columns: 54px 1fr;
+    gap: 12px;
+    padding: 16px;
+    border-radius: 20px;
+  }
+
+  .airline-logo {
+    width: 48px;
+    height: 48px;
+  }
+
+  .route-main {
+    font-size: 29px;
+    line-height: 1.05;
+  }
+
+  .route-meta {
+    font-size: 14px;
+  }
+
+  .reservation {
+    grid-column: 2;
+    text-align: left;
+    font-size: 25px;
+    margin-top: 2px;
+  }
+
+  .stepper {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 10px;
+    margin-bottom: 18px;
+  }
+
+  .stepper.intl {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .step {
+    min-height: 68px;
+    border-radius: 17px;
+    font-size: 13px;
+    line-height: 1.05;
+    padding: 8px;
+  }
+
+  .panel {
+    padding: 20px;
+    border-radius: 24px;
+  }
+
+  .panel-title {
+    font-size: 31px;
+    line-height: 1.03;
+  }
+
+  .panel-subtitle {
+    font-size: 17px;
+    line-height: 1.3;
+  }
+
+  .passenger-row,
+  .confirm-row,
+  .advisory-row {
+    padding: 15px;
+    border-radius: 18px;
+  }
+
+  .passenger-name {
+    font-size: 18px;
+    line-height: 1.1;
+  }
+
+  .button-row {
+    grid-template-columns: 1fr 1.2fr;
+    gap: 12px;
+  }
+
+  .btn {
+    min-height: 58px;
+    font-size: 18px;
+  }
+
+  .details-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 390px) {
+  .route-main {
+    font-size: 26px;
+  }
+
+  .panel-title {
+    font-size: 28px;
+  }
+
+  .step {
+    font-size: 12px;
+  }
+
+  .passenger-name {
+    font-size: 17px;
+  }
+
+  .btn {
+    font-size: 17px;
+  }
+}
   </style>
 </head>
 
 <body>
   <main class="app">
-    <section id="homePage">
+    <section class="page-view" id="homePage">
       <div class="topbar">
         <div class="brand">
           <div class="eyebrow">MSFS Passenger Services</div>
@@ -566,7 +707,7 @@
       <div class="flight-list" id="flightList"></div>
     </section>
 
-    <section class="locked-wrap hidden" id="lockedPage">
+    <section class="locked-wrap page-view hidden" id="lockedPage">
       <div class="locked-card">
         <div class="lock-icon">🔒</div>
         <div class="locked-title">This site is locked</div>
@@ -574,7 +715,7 @@
       </div>
     </section>
 
-    <section class="flow-page hidden" id="flowPage">
+    <section class="flow-page page-view hidden" id="flowPage">
       <div class="flow-header">
         <button class="back-button" id="flowBackButton" type="button" aria-label="Back">‹</button>
         <div>
@@ -648,7 +789,8 @@
 
     const params = new URLSearchParams(window.location.search);
     const directFlightId = params.get("flightId") || "";
-    const returnUrl = params.get("returnUrl") || "";
+const returnUrl = params.get("returnUrl") || "";
+let directFlightOpened = false;
 
     function buildLocalDateTime(dateValue, timeValue) {
       if (!dateValue || !timeValue) return null;
@@ -845,12 +987,14 @@
 
       showPage("home");
 
-      if (directFlightId) {
-        const directFlight = readyFlights.find((flight) => flight.id === directFlightId);
-        if (directFlight) {
-          openFlow(directFlight);
-        }
-      }
+      if (directFlightId && !directFlightOpened) {
+  const directFlight = readyFlights.find((flight) => flight.id === directFlightId);
+
+  if (directFlight) {
+    directFlightOpened = true;
+    openFlow(directFlight);
+  }
+}
     }
 
     function getSteps(flight) {
@@ -910,7 +1054,10 @@
         nextButton.disabled = !passengerSelected;
       });
 
-      document.getElementById("backHomeButton").addEventListener("click", closeFlow);
+      document.getElementById("backHomeButton").addEventListener("click", () => {
+  directFlightOpened = true;
+  closeFlow();
+});
       nextButton.addEventListener("click", () => {
         activeStep = 1;
         renderFlow();
@@ -1188,7 +1335,10 @@
       }
     }
 
-    flowBackButton.addEventListener("click", closeFlow);
+    flowBackButton.addEventListener("click", () => {
+  directFlightOpened = true;
+  closeFlow();
+});
     refreshButton.addEventListener("click", renderHome);
 
     onSnapshot(collection(db, "flights"), (snapshot) => {
