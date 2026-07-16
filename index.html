@@ -1,1 +1,1219 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MSFS Check In</title>
 
+  <style>
+    :root {
+      --bg: #070b16;
+      --panel: #121824;
+      --panel-2: #171d2a;
+      --panel-3: #202634;
+      --line: rgba(255, 255, 255, 0.1);
+      --text: #ffffff;
+      --muted: rgba(255, 255, 255, 0.62);
+      --soft: rgba(255, 255, 255, 0.38);
+      --green: #20d47a;
+      --green-dark: #0b7f48;
+      --blue: #45aaff;
+      --red: #ff4b55;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background:
+        radial-gradient(circle at top left, rgba(36, 83, 255, 0.18), transparent 34%),
+        radial-gradient(circle at top right, rgba(0, 210, 140, 0.12), transparent 30%),
+        linear-gradient(180deg, #080c18 0%, #06101a 100%);
+      color: var(--text);
+      font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      overflow-x: hidden;
+    }
+
+    button,
+    input {
+      font: inherit;
+    }
+
+    .app {
+      width: min(100%, 760px);
+      min-height: 100vh;
+      margin: 0 auto;
+      padding: 22px 18px 40px;
+    }
+
+    .hidden {
+      display: none !important;
+    }
+
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+      margin-bottom: 22px;
+    }
+
+    .brand {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .eyebrow {
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: clamp(32px, 8vw, 54px);
+      line-height: 0.95;
+      letter-spacing: -0.04em;
+    }
+
+    .refresh-dot {
+      width: 42px;
+      height: 42px;
+      border-radius: 50%;
+      border: 1px solid var(--line);
+      background: rgba(255, 255, 255, 0.06);
+      color: var(--text);
+      display: grid;
+      place-items: center;
+      font-size: 22px;
+      cursor: pointer;
+    }
+
+    .underline {
+      height: 1px;
+      background: linear-gradient(90deg, rgba(255,255,255,0.7), transparent);
+      margin: 0 0 22px;
+    }
+
+    .locked-wrap {
+      min-height: calc(100vh - 80px);
+      display: grid;
+      place-items: center;
+      padding: 24px;
+    }
+
+    .locked-card {
+      width: min(100%, 420px);
+      padding: 34px 26px;
+      border: 1px solid var(--line);
+      border-radius: 22px;
+      background:
+        radial-gradient(circle at top, rgba(255, 75, 85, 0.16), transparent 45%),
+        rgba(23, 29, 42, 0.86);
+      box-shadow: 0 24px 80px rgba(0, 0, 0, 0.32);
+      text-align: center;
+    }
+
+    .lock-icon {
+      width: 72px;
+      height: 72px;
+      border-radius: 50%;
+      margin: 0 auto 22px;
+      display: grid;
+      place-items: center;
+      background: rgba(255, 255, 255, 0.08);
+      color: var(--red);
+      font-size: 30px;
+    }
+
+    .locked-title {
+      font-size: 27px;
+      font-weight: 900;
+      letter-spacing: -0.04em;
+      margin-bottom: 8px;
+    }
+
+    .locked-subtitle {
+      color: var(--muted);
+      font-size: 15px;
+      font-weight: 700;
+      line-height: 1.4;
+    }
+
+    .flight-list {
+      display: flex;
+      flex-direction: column;
+      gap: 13px;
+    }
+
+    .ready-card {
+      width: 100%;
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      background: rgba(18, 24, 36, 0.88);
+      padding: 16px;
+      display: grid;
+      grid-template-columns: 48px 1fr auto;
+      gap: 14px;
+      align-items: center;
+      cursor: pointer;
+      box-shadow: 0 18px 40px rgba(0, 0, 0, 0.22);
+      transition: transform 0.16s ease, border-color 0.16s ease, background 0.16s ease;
+    }
+
+    .ready-card:active {
+      transform: scale(0.985);
+    }
+
+    .ready-card:hover {
+      border-color: rgba(32, 212, 122, 0.4);
+      background: rgba(23, 29, 42, 0.96);
+    }
+
+    .airline-logo {
+      width: 46px;
+      height: 46px;
+      object-fit: contain;
+    }
+
+    .route-main {
+      font-size: clamp(21px, 5vw, 30px);
+      line-height: 1.05;
+      font-weight: 950;
+      letter-spacing: -0.045em;
+    }
+
+    .route-main .airport {
+      color: var(--blue);
+    }
+
+    .route-meta {
+      margin-top: 5px;
+      color: var(--muted);
+      font-size: 14px;
+      font-weight: 750;
+    }
+
+    .reservation {
+      color: var(--blue);
+      font-size: clamp(18px, 4vw, 28px);
+      font-weight: 950;
+      letter-spacing: 0.03em;
+      text-align: right;
+      white-space: nowrap;
+    }
+
+    .flow-page {
+      padding-bottom: 40px;
+    }
+
+    .flow-header {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      margin-bottom: 18px;
+    }
+
+    .back-button {
+      width: 44px;
+      height: 44px;
+      border: 1px solid var(--line);
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.07);
+      color: var(--text);
+      font-size: 24px;
+      cursor: pointer;
+    }
+
+    .selected-flight-card {
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      background: rgba(18, 24, 36, 0.92);
+      padding: 16px;
+      display: grid;
+      grid-template-columns: 52px 1fr auto;
+      align-items: center;
+      gap: 14px;
+      margin-bottom: 18px;
+    }
+
+    .stepper {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+      margin: 0 0 18px;
+    }
+
+    .stepper.intl {
+      grid-template-columns: repeat(4, 1fr);
+    }
+
+    .step {
+      min-height: 54px;
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      background: rgba(255, 255, 255, 0.045);
+      padding: 8px;
+      color: var(--soft);
+      font-size: 12px;
+      font-weight: 850;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      line-height: 1.15;
+    }
+
+    .step.active {
+      color: var(--text);
+      border-color: rgba(32, 212, 122, 0.55);
+      background: rgba(32, 212, 122, 0.13);
+    }
+
+    .step.done {
+      color: var(--green);
+    }
+
+    .panel {
+      border: 1px solid var(--line);
+      border-radius: 22px;
+      background: rgba(18, 24, 36, 0.92);
+      padding: 20px;
+      box-shadow: 0 20px 55px rgba(0, 0, 0, 0.26);
+    }
+
+    .panel-title {
+      font-size: 25px;
+      font-weight: 950;
+      letter-spacing: -0.04em;
+      margin-bottom: 14px;
+    }
+
+    .panel-subtitle {
+      color: var(--muted);
+      font-size: 15px;
+      font-weight: 750;
+      margin-bottom: 18px;
+    }
+
+    .passenger-row,
+    .confirm-row,
+    .advisory-row {
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      background: rgba(255, 255, 255, 0.045);
+      padding: 15px;
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      margin-bottom: 12px;
+    }
+
+    .passenger-name {
+      font-size: 18px;
+      font-weight: 950;
+      letter-spacing: -0.02em;
+    }
+
+    .passenger-seat {
+      color: var(--muted);
+      font-weight: 800;
+      margin-top: 3px;
+    }
+
+    input[type="checkbox"] {
+      width: 24px;
+      height: 24px;
+      accent-color: var(--green);
+      flex: 0 0 auto;
+    }
+
+    .details-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+
+    .detail-box {
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      background: rgba(255, 255, 255, 0.045);
+      padding: 14px;
+    }
+
+    .detail-label {
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 850;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      margin-bottom: 7px;
+    }
+
+    .detail-value {
+      font-size: 22px;
+      font-weight: 950;
+      letter-spacing: -0.035em;
+    }
+
+    .advisory-list {
+      display: grid;
+      gap: 10px;
+      margin-bottom: 16px;
+    }
+
+    .advisory-icon {
+      width: 36px;
+      height: 36px;
+      border-radius: 12px;
+      background: rgba(255, 255, 255, 0.075);
+      display: grid;
+      place-items: center;
+      flex: 0 0 auto;
+    }
+
+    .advisory-title {
+      font-size: 16px;
+      font-weight: 900;
+      margin-bottom: 3px;
+    }
+
+    .advisory-text {
+      color: var(--muted);
+      font-size: 14px;
+      font-weight: 650;
+      line-height: 1.35;
+    }
+
+    .passport-notice {
+      border: 1px solid rgba(69, 170, 255, 0.36);
+      background: rgba(69, 170, 255, 0.12);
+      border-radius: 18px;
+      padding: 16px;
+      display: grid;
+      grid-template-columns: 58px 1fr;
+      gap: 14px;
+      align-items: center;
+      margin-bottom: 18px;
+    }
+
+    .passport-notice img {
+      width: 58px;
+      height: 58px;
+      object-fit: contain;
+    }
+
+    .notice-title {
+      font-size: 20px;
+      font-weight: 950;
+      letter-spacing: -0.03em;
+      margin-bottom: 4px;
+    }
+
+    .notice-text {
+      color: rgba(255, 255, 255, 0.72);
+      font-size: 14px;
+      font-weight: 700;
+      line-height: 1.35;
+    }
+
+    .button-row {
+      display: grid;
+      grid-template-columns: 1fr 1.2fr;
+      gap: 12px;
+      margin-top: 18px;
+    }
+
+    .button-row.single {
+      grid-template-columns: 1fr;
+    }
+
+    .btn {
+      min-height: 54px;
+      border: none;
+      border-radius: 999px;
+      font-weight: 950;
+      font-size: 17px;
+      cursor: pointer;
+    }
+
+    .btn.secondary {
+      background: rgba(255, 255, 255, 0.1);
+      color: var(--text);
+      border: 1px solid var(--line);
+    }
+
+    .btn.primary {
+      background: linear-gradient(180deg, #28e087, #13b765);
+      color: #04120a;
+    }
+
+    .btn:disabled {
+      opacity: 0.38;
+      cursor: not-allowed;
+    }
+
+    .modal-cover {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.62);
+      display: grid;
+      place-items: center;
+      padding: 24px;
+      z-index: 20;
+    }
+
+    .modal {
+      width: min(100%, 360px);
+      border: 1px solid var(--line);
+      border-radius: 24px;
+      background: rgba(18, 24, 36, 0.96);
+      padding: 26px;
+      text-align: center;
+      box-shadow: 0 28px 90px rgba(0, 0, 0, 0.42);
+    }
+
+    .spinner {
+      width: 52px;
+      height: 52px;
+      margin: 0 auto 18px;
+      border-radius: 50%;
+      border: 4px solid rgba(255,255,255,0.14);
+      border-top-color: var(--green);
+      animation: spin 1s linear infinite;
+    }
+
+    .modal.success .spinner {
+      animation: none;
+      border: none;
+      background: var(--green);
+      color: #04120a;
+      display: grid;
+      place-items: center;
+      font-size: 30px;
+      font-weight: 950;
+    }
+
+    .modal.success .spinner::before {
+      content: "✓";
+    }
+
+    .modal-title {
+      font-size: 23px;
+      font-weight: 950;
+      letter-spacing: -0.035em;
+      margin-bottom: 6px;
+    }
+
+    .modal-text {
+      color: var(--muted);
+      font-size: 15px;
+      font-weight: 700;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    @media (max-width: 560px) {
+      .app {
+        padding: 18px 14px 32px;
+      }
+
+      .ready-card,
+      .selected-flight-card {
+        grid-template-columns: 42px 1fr;
+      }
+
+      .reservation {
+        grid-column: 2;
+        text-align: left;
+        font-size: 20px;
+      }
+
+      .details-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .step {
+        font-size: 10px;
+        padding: 6px;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <main class="app">
+    <section id="homePage">
+      <div class="topbar">
+        <div class="brand">
+          <div class="eyebrow">MSFS Passenger Services</div>
+          <h1>Flights ready for Check in</h1>
+        </div>
+        <button class="refresh-dot" id="refreshButton" type="button" aria-label="Refresh">↻</button>
+      </div>
+
+      <div class="underline"></div>
+
+      <div class="flight-list" id="flightList"></div>
+    </section>
+
+    <section class="locked-wrap hidden" id="lockedPage">
+      <div class="locked-card">
+        <div class="lock-icon">🔒</div>
+        <div class="locked-title">This site is locked</div>
+        <div class="locked-subtitle">Check in opens 24 hours before scheduled departure.</div>
+      </div>
+    </section>
+
+    <section class="flow-page hidden" id="flowPage">
+      <div class="flow-header">
+        <button class="back-button" id="flowBackButton" type="button" aria-label="Back">‹</button>
+        <div>
+          <div class="eyebrow">Secure Check In</div>
+          <h1 id="flowTitle">Check in</h1>
+        </div>
+      </div>
+
+      <div id="selectedFlightCard"></div>
+      <div class="stepper" id="stepper"></div>
+      <section class="panel" id="stepPanel"></section>
+    </section>
+  </main>
+
+  <div class="modal-cover hidden" id="loadingModal">
+    <div class="modal" id="modalBox">
+      <div class="spinner"></div>
+      <div class="modal-title" id="modalTitle">Checking you in</div>
+      <div class="modal-text" id="modalText">Securing boarding pass access...</div>
+    </div>
+  </div>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js";
+
+    import {
+      getFirestore,
+      collection,
+      doc,
+      onSnapshot,
+      updateDoc,
+      serverTimestamp
+    } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyAehW0Ab5c0bpb824JyPBa43YBvyR7zwig",
+      authDomain: "msfs-flight-tracker.firebaseapp.com",
+      projectId: "msfs-flight-tracker",
+      storageBucket: "msfs-flight-tracker.firebasestorage.app",
+      messagingSenderId: "477994284624",
+      appId: "1:477994284624:web:50bef41d84258420ea8355"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
+    const PASSENGER_NAME = "SHLOAK PATEL";
+
+    const homePage = document.getElementById("homePage");
+    const lockedPage = document.getElementById("lockedPage");
+    const flowPage = document.getElementById("flowPage");
+    const flightList = document.getElementById("flightList");
+    const refreshButton = document.getElementById("refreshButton");
+    const flowBackButton = document.getElementById("flowBackButton");
+    const flowTitle = document.getElementById("flowTitle");
+    const selectedFlightCard = document.getElementById("selectedFlightCard");
+    const stepper = document.getElementById("stepper");
+    const stepPanel = document.getElementById("stepPanel");
+    const loadingModal = document.getElementById("loadingModal");
+    const modalBox = document.getElementById("modalBox");
+    const modalTitle = document.getElementById("modalTitle");
+    const modalText = document.getElementById("modalText");
+
+    let allFlights = [];
+    let readyFlights = [];
+    let activeFlight = null;
+    let activeStep = 0;
+    let passengerSelected = false;
+    let flightConfirmed = false;
+    let advisoriesConfirmed = false;
+
+    const params = new URLSearchParams(window.location.search);
+    const directFlightId = params.get("flightId") || "";
+    const returnUrl = params.get("returnUrl") || "";
+
+    function buildLocalDateTime(dateValue, timeValue) {
+      if (!dateValue || !timeValue) return null;
+      return new Date(`${dateValue}T${timeValue}:00`);
+    }
+
+    function getDepartureDateTime(flight) {
+      return buildLocalDateTime(flight.flightDateRaw, flight.scheduledDeparture);
+    }
+
+    function getArrivalDateTime(flight) {
+      const departure = getDepartureDateTime(flight);
+      const arrival = buildLocalDateTime(flight.flightDateRaw, flight.scheduledArrival);
+
+      if (!departure || !arrival) return arrival;
+
+      if (arrival <= departure || flight.overnight === true) {
+        arrival.setDate(arrival.getDate() + 1);
+      }
+
+      return arrival;
+    }
+
+    function getCheckInOpenDate(flight) {
+      const departure = getDepartureDateTime(flight);
+      if (!departure || Number.isNaN(departure.getTime())) return null;
+
+      const openDate = new Date(departure);
+      openDate.setMinutes(openDate.getMinutes() - 24 * 60);
+      return openDate;
+    }
+
+    function hasCheckInOpened(flight) {
+      if (!flight) return false;
+      if (flight.checkInOpened === true) return true;
+
+      const openDate = getCheckInOpenDate(flight);
+      return openDate && new Date() >= openDate;
+    }
+
+    function isReadyForCheckIn(flight) {
+      if (!flight) return false;
+      if (flight.checkedIn === true) return false;
+      if (flight.phase && flight.phase !== "scheduled") return false;
+      return hasCheckInOpened(flight);
+    }
+
+    function getAirlineLogoPath(airlineCode) {
+      const code = String(airlineCode || "").trim().toLowerCase();
+      return code ? `./${code}.png` : "";
+    }
+
+    function formatTime(dateOrTime) {
+      if (!dateOrTime) return "--";
+
+      if (dateOrTime instanceof Date) {
+        return dateOrTime.toLocaleTimeString([], {
+          hour: "numeric",
+          minute: "2-digit"
+        });
+      }
+
+      const fakeDate = new Date(`2026-01-01T${dateOrTime}:00`);
+      if (Number.isNaN(fakeDate.getTime())) return "--";
+
+      return fakeDate.toLocaleTimeString([], {
+        hour: "numeric",
+        minute: "2-digit"
+      });
+    }
+
+    function formatDate(dateValue) {
+      if (!dateValue) return "--";
+
+      const date = new Date(`${dateValue}T00:00:00`);
+
+      return date.toLocaleDateString("en-US", {
+        weekday: "short",
+        month: "short",
+        day: "numeric",
+        year: "numeric"
+      });
+    }
+
+    function getReservationCode(flight) {
+      if (flight.reservationCode) {
+        return String(flight.reservationCode).trim().toUpperCase();
+      }
+
+      const source = `${flight.id || ""}${flight.airline || ""}${flight.flightNumber || ""}${flight.flightDateRaw || ""}`;
+      const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+      let hash = 0;
+
+      for (let index = 0; index < source.length; index += 1) {
+        hash = ((hash << 5) - hash) + source.charCodeAt(index);
+        hash |= 0;
+      }
+
+      let code = "";
+      let value = Math.abs(hash) || 1;
+
+      for (let index = 0; index < 6; index += 1) {
+        code += alphabet[value % alphabet.length];
+        value = Math.floor(value / alphabet.length) + index + 7;
+      }
+
+      return code;
+    }
+
+    function showPage(page) {
+      homePage.classList.toggle("hidden", page !== "home");
+      lockedPage.classList.toggle("hidden", page !== "locked");
+      flowPage.classList.toggle("hidden", page !== "flow");
+    }
+
+    function renderLogo(flight) {
+      const airline = flight.airline || "AA";
+
+      return `
+        <img
+          class="airline-logo"
+          src="${getAirlineLogoPath(airline)}"
+          alt="${airline} logo"
+          onerror="this.style.display='none';"
+        />
+      `;
+    }
+
+    function renderFlightCard(flight) {
+      const card = document.createElement("article");
+      card.className = "ready-card";
+      card.dataset.flightId = flight.id;
+
+      card.innerHTML = `
+        ${renderLogo(flight)}
+        <div>
+          <div class="route-main">
+            <span class="airport">${flight.departureAirport || "DEP"}</span>
+            <span> → </span>
+            <span class="airport">${flight.arrivalAirport || "ARR"}</span>
+          </div>
+          <div class="route-meta">
+            ${formatDate(flight.flightDateRaw)} • ${flight.airline || "AA"} ${flight.flightNumber || "0000"}
+          </div>
+        </div>
+        <div class="reservation">${getReservationCode(flight)}</div>
+      `;
+
+      card.addEventListener("click", () => {
+        openFlow(flight);
+      });
+
+      return card;
+    }
+
+    function renderSelectedFlightCard(flight) {
+      selectedFlightCard.innerHTML = `
+        <article class="selected-flight-card">
+          ${renderLogo(flight)}
+          <div>
+            <div class="route-main">
+              <span class="airport">${flight.departureAirport || "DEP"}</span>
+              <span> → </span>
+              <span class="airport">${flight.arrivalAirport || "ARR"}</span>
+            </div>
+            <div class="route-meta">
+              ${formatDate(flight.flightDateRaw)} • ${formatTime(flight.scheduledDeparture)}
+            </div>
+          </div>
+          <div class="reservation">${getReservationCode(flight)}</div>
+        </article>
+      `;
+    }
+
+    function renderHome() {
+      readyFlights = allFlights
+        .filter(isReadyForCheckIn)
+        .sort((a, b) => {
+          const aDate = getDepartureDateTime(a);
+          const bDate = getDepartureDateTime(b);
+          return (aDate?.getTime() || 0) - (bDate?.getTime() || 0);
+        });
+
+      flightList.innerHTML = "";
+
+      if (readyFlights.length === 0) {
+        showPage("locked");
+        return;
+      }
+
+      readyFlights.forEach((flight) => {
+        flightList.appendChild(renderFlightCard(flight));
+      });
+
+      showPage("home");
+
+      if (directFlightId) {
+        const directFlight = readyFlights.find((flight) => flight.id === directFlightId);
+        if (directFlight) {
+          openFlow(directFlight);
+        }
+      }
+    }
+
+    function getSteps(flight) {
+      const steps = [
+        "Passenger Information",
+        "Flight Details",
+        "Advisories"
+      ];
+
+      if (flight.internationalUSArrival === true) {
+        steps.push("Arrival Information");
+      }
+
+      return steps;
+    }
+
+    function renderStepper() {
+      const steps = getSteps(activeFlight);
+
+      stepper.classList.toggle("intl", steps.length === 4);
+      stepper.innerHTML = "";
+
+      steps.forEach((label, index) => {
+        const item = document.createElement("div");
+        item.className = "step";
+        item.classList.toggle("active", index === activeStep);
+        item.classList.toggle("done", index < activeStep);
+        item.textContent = label;
+        stepper.appendChild(item);
+      });
+    }
+
+    function renderPassengerStep() {
+      stepPanel.innerHTML = `
+        <div class="panel-title">Select passengers to check in</div>
+        <div class="panel-subtitle">Confirm the traveler receiving a boarding pass for this flight.</div>
+
+        <label class="passenger-row">
+          <input type="checkbox" id="passengerCheckbox" ${passengerSelected ? "checked" : ""} />
+          <div>
+            <div class="passenger-name">${PASSENGER_NAME} - ${activeFlight.assignedSeat || "--"}</div>
+            <div class="passenger-seat">${activeFlight.seatCabin || "Economy"}</div>
+          </div>
+        </label>
+
+        <div class="button-row">
+          <button class="btn secondary" id="backHomeButton" type="button">Back</button>
+          <button class="btn primary" id="nextButton" type="button" ${passengerSelected ? "" : "disabled"}>Next</button>
+        </div>
+      `;
+
+      const checkbox = document.getElementById("passengerCheckbox");
+      const nextButton = document.getElementById("nextButton");
+
+      checkbox.addEventListener("change", () => {
+        passengerSelected = checkbox.checked;
+        nextButton.disabled = !passengerSelected;
+      });
+
+      document.getElementById("backHomeButton").addEventListener("click", closeFlow);
+      nextButton.addEventListener("click", () => {
+        activeStep = 1;
+        renderFlow();
+      });
+    }
+
+    function renderFlightDetailsStep() {
+      const departure = getDepartureDateTime(activeFlight);
+      const arrival = getArrivalDateTime(activeFlight);
+
+      stepPanel.innerHTML = `
+        <div class="panel-title">Flight details</div>
+        <div class="panel-subtitle">Review your trip before continuing.</div>
+
+        <div class="details-grid">
+          <div class="detail-box">
+            <div class="detail-label">Flight</div>
+            <div class="detail-value">${activeFlight.airline || "AA"} ${activeFlight.flightNumber || "0000"}</div>
+          </div>
+
+          <div class="detail-box">
+            <div class="detail-label">Booking Code</div>
+            <div class="detail-value">${getReservationCode(activeFlight)}</div>
+          </div>
+
+          <div class="detail-box">
+            <div class="detail-label">Departure</div>
+            <div class="detail-value">${activeFlight.departureAirport || "DEP"} • ${formatTime(departure)}</div>
+          </div>
+
+          <div class="detail-box">
+            <div class="detail-label">Arrival</div>
+            <div class="detail-value">${activeFlight.arrivalAirport || "ARR"} • ${formatTime(arrival)}</div>
+          </div>
+
+          <div class="detail-box">
+            <div class="detail-label">Seat</div>
+            <div class="detail-value">${activeFlight.assignedSeat || "--"}</div>
+          </div>
+
+          <div class="detail-box">
+            <div class="detail-label">Cabin</div>
+            <div class="detail-value">${activeFlight.seatCabin || "Economy"}</div>
+          </div>
+        </div>
+
+        <label class="confirm-row">
+          <input type="checkbox" id="flightConfirmCheckbox" ${flightConfirmed ? "checked" : ""} />
+          <div>
+            <div class="passenger-name">Is this your flight?</div>
+            <div class="passenger-seat">${activeFlight.cityDeparture || "Departure"} to ${activeFlight.cityArrival || "Arrival"}</div>
+          </div>
+        </label>
+
+        <div class="button-row">
+          <button class="btn secondary" id="previousButton" type="button">Back</button>
+          <button class="btn primary" id="nextButton" type="button" ${flightConfirmed ? "" : "disabled"}>Next</button>
+        </div>
+      `;
+
+      const checkbox = document.getElementById("flightConfirmCheckbox");
+      const nextButton = document.getElementById("nextButton");
+
+      checkbox.addEventListener("change", () => {
+        flightConfirmed = checkbox.checked;
+        nextButton.disabled = !flightConfirmed;
+      });
+
+      document.getElementById("previousButton").addEventListener("click", () => {
+        activeStep = 0;
+        renderFlow();
+      });
+
+      nextButton.addEventListener("click", () => {
+        activeStep = 2;
+        renderFlow();
+      });
+    }
+
+    function renderAdvisoriesStep() {
+      const hasIntlArrival = activeFlight.internationalUSArrival === true;
+      const nextLabel = hasIntlArrival ? "Next" : "Check in";
+
+      stepPanel.innerHTML = `
+        <div class="panel-title">Advisories</div>
+        <div class="panel-subtitle">Review required travel notices before check in is completed.</div>
+
+        <div class="advisory-list">
+          <div class="advisory-row">
+            <div class="advisory-icon">!</div>
+            <div>
+              <div class="advisory-title">Hazardous materials</div>
+              <div class="advisory-text">Do not pack explosives, compressed gases, flammable liquids, or other restricted materials.</div>
+            </div>
+          </div>
+
+          <div class="advisory-row">
+            <div class="advisory-icon">oz</div>
+            <div>
+              <div class="advisory-title">Liquids and gels</div>
+              <div class="advisory-text">Liquids should follow standard security limits unless packed in checked baggage.</div>
+            </div>
+          </div>
+
+          <div class="advisory-row">
+            <div class="advisory-icon">ID</div>
+            <div>
+              <div class="advisory-title">Travel documents</div>
+              <div class="advisory-text">Counterfeit, expired, or mismatched documents may prevent travel.</div>
+            </div>
+          </div>
+
+          <div class="advisory-row">
+            <div class="advisory-icon">✓</div>
+            <div>
+              <div class="advisory-title">Boarding pass issuance</div>
+              <div class="advisory-text">Your boarding pass becomes available on the main flight site after check in is complete.</div>
+            </div>
+          </div>
+        </div>
+
+        <label class="confirm-row">
+          <input type="checkbox" id="advisoryCheckbox" ${advisoriesConfirmed ? "checked" : ""} />
+          <div>
+            <div class="passenger-name">I understand</div>
+            <div class="passenger-seat">Required notices reviewed</div>
+          </div>
+        </label>
+
+        <div class="button-row">
+          <button class="btn secondary" id="previousButton" type="button">Back</button>
+          <button class="btn primary" id="nextButton" type="button" ${advisoriesConfirmed ? "" : "disabled"}>${nextLabel}</button>
+        </div>
+      `;
+
+      const checkbox = document.getElementById("advisoryCheckbox");
+      const nextButton = document.getElementById("nextButton");
+
+      checkbox.addEventListener("change", () => {
+        advisoriesConfirmed = checkbox.checked;
+        nextButton.disabled = !advisoriesConfirmed;
+      });
+
+      document.getElementById("previousButton").addEventListener("click", () => {
+        activeStep = 1;
+        renderFlow();
+      });
+
+      nextButton.addEventListener("click", () => {
+        if (hasIntlArrival) {
+          activeStep = 3;
+          renderFlow();
+        } else {
+          completeCheckIn();
+        }
+      });
+    }
+
+    function renderArrivalStep() {
+      stepPanel.innerHTML = `
+        <div class="panel-title">Arrival information</div>
+
+        <div class="passport-notice">
+          <img src="./cbp.png" alt="CBP logo" onerror="this.style.display='none';" />
+          <div>
+            <div class="notice-title">International travel requires a valid passport</div>
+            <div class="notice-text">
+              Make sure your passport is valid before entering the United States. You may also need to complete any required arrival or preclearance steps before the flight can be finished.
+            </div>
+          </div>
+        </div>
+
+        <div class="details-grid">
+          <div class="detail-box">
+            <div class="detail-label">Arrival Airport</div>
+            <div class="detail-value">${activeFlight.arrivalAirport || "ARR"}</div>
+          </div>
+
+          <div class="detail-box">
+            <div class="detail-label">Traveler</div>
+            <div class="detail-value">${PASSENGER_NAME}</div>
+          </div>
+        </div>
+
+        <div class="button-row">
+          <button class="btn secondary" id="previousButton" type="button">Back</button>
+          <button class="btn primary" id="checkInButton" type="button">Check in</button>
+        </div>
+      `;
+
+      document.getElementById("previousButton").addEventListener("click", () => {
+        activeStep = 2;
+        renderFlow();
+      });
+
+      document.getElementById("checkInButton").addEventListener("click", completeCheckIn);
+    }
+
+    function renderFlow() {
+      if (!activeFlight) return;
+
+      flowTitle.textContent = `${activeFlight.departureAirport || "DEP"} to ${activeFlight.arrivalAirport || "ARR"}`;
+      renderSelectedFlightCard(activeFlight);
+      renderStepper();
+
+      if (activeStep === 0) renderPassengerStep();
+      if (activeStep === 1) renderFlightDetailsStep();
+      if (activeStep === 2) renderAdvisoriesStep();
+      if (activeStep === 3) renderArrivalStep();
+    }
+
+    function openFlow(flight) {
+      activeFlight = flight;
+      activeStep = 0;
+      passengerSelected = false;
+      flightConfirmed = false;
+      advisoriesConfirmed = false;
+
+      showPage("flow");
+      renderFlow();
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+
+    function closeFlow() {
+      activeFlight = null;
+      activeStep = 0;
+      renderHome();
+    }
+
+    function showLoadingModal() {
+      modalBox.classList.remove("success");
+      modalTitle.textContent = "Checking you in";
+      modalText.textContent = "Securing boarding pass access...";
+      loadingModal.classList.remove("hidden");
+    }
+
+    function showSuccessModal() {
+      modalBox.classList.add("success");
+      modalTitle.textContent = "Successfully checked in!";
+      modalText.textContent = "Your boarding pass is now available.";
+    }
+
+    async function completeCheckIn() {
+      if (!activeFlight || !activeFlight.id) return;
+
+      showLoadingModal();
+
+      try {
+        await new Promise((resolve) => setTimeout(resolve, 5000));
+
+        await updateDoc(doc(db, "flights", activeFlight.id), {
+          checkedIn: true,
+          checkedInAt: serverTimestamp(),
+          checkInOpened: true,
+          checkInOpenedAt: activeFlight.checkInOpenedAt || serverTimestamp()
+        });
+
+        showSuccessModal();
+
+        setTimeout(() => {
+          loadingModal.classList.add("hidden");
+
+          if (returnUrl) {
+            window.location.href = returnUrl;
+            return;
+          }
+
+          closeFlow();
+        }, 1600);
+      } catch (error) {
+        console.error("Check in failed:", error);
+        modalBox.classList.remove("success");
+        modalTitle.textContent = "Check in failed";
+        modalText.textContent = "Reload the page and try again.";
+      }
+    }
+
+    flowBackButton.addEventListener("click", closeFlow);
+    refreshButton.addEventListener("click", renderHome);
+
+    onSnapshot(collection(db, "flights"), (snapshot) => {
+      allFlights = snapshot.docs.map((flightDoc) => ({
+        id: flightDoc.id,
+        ...flightDoc.data()
+      }));
+
+      if (!activeFlight) {
+        renderHome();
+        return;
+      }
+
+      const updatedActiveFlight = allFlights.find((flight) => flight.id === activeFlight.id);
+
+      if (!updatedActiveFlight || updatedActiveFlight.checkedIn === true) {
+        closeFlow();
+        return;
+      }
+
+      activeFlight = updatedActiveFlight;
+    }, (error) => {
+      console.error("Error loading flights:", error);
+      showPage("locked");
+    });
+  </script>
+</body>
+</html>
