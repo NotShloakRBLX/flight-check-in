@@ -3,855 +3,747 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-<meta name="theme-color" content="#070b16" />
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-<title>MSFS Check In</title>
+  <meta name="theme-color" content="#070b16" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <title>Flight Check In</title>
 
   <style>
-  :root {
-    --bg: #060a13;
-    --bg-2: #08111d;
-    --panel: rgba(16, 22, 34, 0.82);
-    --panel-solid: #111827;
-    --panel-2: rgba(255, 255, 255, 0.055);
-    --line: rgba(255, 255, 255, 0.11);
-    --line-strong: rgba(255, 255, 255, 0.18);
-    --text: #ffffff;
-    --muted: rgba(255, 255, 255, 0.64);
-    --soft: rgba(255, 255, 255, 0.42);
-    --green: #23d87d;
-    --green-2: #12aa62;
-    --blue: #43a9ff;
-    --yellow: #ffd33d;
-    --red: #ff4b55;
-  }
-
-  * {
-    box-sizing: border-box;
-  }
-
-  html {
-    min-height: 100%;
-    background: var(--bg);
-  }
-
-  body {
-    margin: 0;
-    min-height: 100svh;
-    background:
-      linear-gradient(145deg, rgba(30, 70, 160, 0.28), transparent 34%),
-      linear-gradient(220deg, rgba(0, 170, 130, 0.17), transparent 30%),
-      linear-gradient(180deg, #080b16 0%, #06101a 100%);
-    background-color: var(--bg);
-    background-attachment: fixed;
-    color: var(--text);
-    font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-    overflow-x: hidden;
-  }
-
-  button,
-  input {
-    font: inherit;
-  }
-
-  button {
-    -webkit-tap-highlight-color: transparent;
-  }
-
-  .app {
-    width: min(100%, 740px);
-    min-height: 100svh;
-    margin: 0 auto;
-    padding: calc(18px + env(safe-area-inset-top)) 18px calc(34px + env(safe-area-inset-bottom));
-  }
-
-  .hidden {
-    display: none !important;
-  }
-
-  .page-view {
-    animation: pageIn 0.34s cubic-bezier(.2,.8,.2,1) both;
-  }
-
-  .step-panel-animate {
-    animation: stepIn 0.34s cubic-bezier(.2,.8,.2,1) both;
-  }
-
-  @keyframes pageIn {
-    from {
-      opacity: 0;
-      transform: translateY(14px) scale(0.99);
+    :root {
+      --bg: #070b16;
+      --panel: rgba(15, 22, 34, 0.84);
+      --panel-strong: rgba(18, 27, 42, 0.96);
+      --line: rgba(255, 255, 255, 0.12);
+      --line-strong: rgba(255, 255, 255, 0.2);
+      --text: #ffffff;
+      --muted: rgba(255, 255, 255, 0.66);
+      --soft: rgba(255, 255, 255, 0.42);
+      --green: #22d87a;
+      --green-2: #0fb665;
+      --blue: #43a9ff;
+      --blue-2: #1778ff;
+      --red: #ff4b55;
     }
 
-    to {
-      opacity: 1;
-      transform: translateY(0) scale(1);
-    }
-  }
-
-  @keyframes stepIn {
-    from {
-      opacity: 0;
-      transform: translateX(24px) scale(0.98);
-      filter: blur(3px);
+    * {
+      box-sizing: border-box;
     }
 
-    to {
-      opacity: 1;
-      transform: translateX(0) scale(1);
-      filter: blur(0);
-    }
-  }
-
-  @keyframes modalFadeIn {
-    from { opacity: 0; }
-    to { opacity: 1; }
-  }
-
-  @keyframes modalPopIn {
-    from {
-      opacity: 0;
-      transform: translateY(18px) scale(0.94);
+    html {
+      min-height: 100%;
+      background: var(--bg);
     }
 
-    to {
-      opacity: 1;
-      transform: translateY(0) scale(1);
+    body {
+      margin: 0;
+      min-height: 100svh;
+      background:
+        radial-gradient(circle at top left, rgba(45, 89, 210, 0.24), transparent 34%),
+        radial-gradient(circle at top right, rgba(0, 196, 142, 0.14), transparent 28%),
+        linear-gradient(180deg, #070b16 0%, #06111b 100%);
+      background-color: var(--bg);
+      color: var(--text);
+      font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      overflow-x: hidden;
     }
-  }
 
-  @keyframes shimmer {
-    from { transform: translateX(-120%); }
-    to { transform: translateX(120%); }
-  }
+    button {
+      font: inherit;
+      -webkit-tap-highlight-color: transparent;
+    }
 
-  .topbar {
-    display: flex;
-    align-items: flex-start;
-    justify-content: space-between;
-    gap: 14px;
-    margin-bottom: 16px;
-  }
+    .hidden {
+      display: none !important;
+    }
 
-  .brand {
-    display: flex;
-    flex-direction: column;
-    gap: 5px;
-  }
-
-  .eyebrow {
-    color: var(--muted);
-    font-size: 12px;
-    font-weight: 900;
-    text-transform: uppercase;
-    letter-spacing: 0.16em;
-  }
-
-  h1 {
-    margin: 0;
-    font-size: clamp(31px, 8vw, 52px);
-    line-height: 0.98;
-    letter-spacing: -0.045em;
-  }
-
-  .refresh-dot,
-  .back-button {
-    border: 1px solid var(--line);
-    background:
-      linear-gradient(180deg, rgba(255,255,255,0.12), rgba(255,255,255,0.045));
-    color: var(--text);
-    display: grid;
-    place-items: center;
-    cursor: pointer;
-    box-shadow: inset 0 1px 0 rgba(255,255,255,0.12), 0 12px 26px rgba(0,0,0,0.22);
-    backdrop-filter: blur(18px);
-  }
-
-  .refresh-dot {
-    width: 44px;
-    height: 44px;
-    border-radius: 50%;
-    font-size: 22px;
-  }
-
-  .underline {
-    height: 1px;
-    background: linear-gradient(90deg, rgba(255,255,255,0.72), rgba(67,169,255,0.35), transparent);
-    margin: 0 0 18px;
-  }
-
-  .locked-wrap {
-    min-height: calc(100svh - 80px);
-    display: grid;
-    place-items: center;
-    padding: 24px;
-  }
-
-  .locked-card {
-    width: min(100%, 420px);
-    padding: 34px 26px;
-    border: 1px solid var(--line);
-    border-radius: 26px;
-    background:
-      radial-gradient(circle at top, rgba(255, 75, 85, 0.18), transparent 45%),
-      linear-gradient(180deg, rgba(255,255,255,0.08), rgba(255,255,255,0.035)),
-      rgba(15, 22, 34, 0.88);
-    box-shadow: 0 24px 80px rgba(0, 0, 0, 0.38);
-    text-align: center;
-    backdrop-filter: blur(20px);
-  }
-
-  .lock-icon {
-    width: 72px;
-    height: 72px;
-    border-radius: 50%;
-    margin: 0 auto 22px;
-    display: grid;
-    place-items: center;
-    background: rgba(255, 255, 255, 0.08);
-    color: var(--red);
-    font-size: 30px;
-  }
-
-  .locked-title {
-    font-size: 28px;
-    font-weight: 950;
-    letter-spacing: -0.04em;
-    margin-bottom: 8px;
-  }
-
-  .locked-subtitle {
-    color: var(--muted);
-    font-size: 15px;
-    font-weight: 750;
-    line-height: 1.4;
-  }
-
-  .flight-list {
-    display: grid;
-    gap: 14px;
-  }
-
-  .ready-card,
-  .selected-flight-card,
-  .panel,
-  .detail-box,
-  .passenger-row,
-  .confirm-row,
-  .advisory-row {
-    border: 1px solid var(--line);
-    background:
-      linear-gradient(180deg, rgba(255,255,255,0.075), rgba(255,255,255,0.035)),
-      rgba(15, 22, 34, 0.78);
-    box-shadow: inset 0 1px 0 rgba(255,255,255,0.08), 0 18px 46px rgba(0,0,0,0.24);
-    backdrop-filter: blur(18px);
-  }
-
-  .ready-card,
-  .selected-flight-card {
-    position: relative;
-    overflow: hidden;
-    width: 100%;
-    border-radius: 22px;
-    padding: 16px;
-    display: grid;
-    grid-template-columns: 50px 1fr auto;
-    gap: 14px;
-    align-items: center;
-  }
-
-  .ready-card {
-    cursor: pointer;
-    transition: transform 0.18s ease, border-color 0.18s ease, background 0.18s ease;
-  }
-
-  .ready-card::after,
-  .selected-flight-card::after {
-    content: "";
-    position: absolute;
-    inset: 0;
-    background: linear-gradient(110deg, transparent 0%, rgba(255,255,255,0.08) 45%, transparent 65%);
-    transform: translateX(-120%);
-    pointer-events: none;
-  }
-
-  .ready-card:hover {
-    border-color: rgba(35, 216, 125, 0.42);
-  }
-
-  .ready-card:active {
-    transform: scale(0.985);
-  }
-
-  .airline-logo {
-    width: 48px;
-    height: 48px;
-    object-fit: contain;
-  }
-
-  .route-main {
-    font-size: clamp(23px, 5vw, 31px);
-    line-height: 1.03;
-    font-weight: 950;
-    letter-spacing: -0.045em;
-  }
-
-  .route-main .airport {
-    color: var(--blue);
-  }
-
-  .route-meta {
-    margin-top: 5px;
-    color: var(--muted);
-    font-size: 14px;
-    font-weight: 800;
-  }
-
-  .reservation {
-    color: var(--blue);
-    font-size: clamp(18px, 4vw, 27px);
-    font-weight: 950;
-    letter-spacing: 0.035em;
-    text-align: right;
-    white-space: nowrap;
-  }
-
-  .flow-page {
-    padding-bottom: 28px;
-  }
-
-  .flow-header {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    margin-bottom: 14px;
-  }
-
-  .back-button {
-    width: 48px;
-    height: 48px;
-    border-radius: 50%;
-    font-size: 27px;
-    flex: 0 0 auto;
-  }
-
-  .selected-flight-card {
-    margin-bottom: 14px;
-  }
-
-  .stepper {
-    position: relative;
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 8px;
-    margin: 0 0 14px;
-  }
-
-  .stepper.intl {
-    grid-template-columns: repeat(4, 1fr);
-  }
-
-  .step {
-    min-height: 50px;
-    border: 1px solid var(--line);
-    border-radius: 16px;
-    background: rgba(255, 255, 255, 0.045);
-    padding: 8px;
-    color: var(--soft);
-    font-size: 11px;
-    font-weight: 900;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    text-align: center;
-    line-height: 1.08;
-    transition: background 0.22s ease, border-color 0.22s ease, color 0.22s ease, transform 0.22s ease;
-  }
-
-  .step.active {
-    color: var(--text);
-    border-color: rgba(35, 216, 125, 0.58);
-    background: linear-gradient(180deg, rgba(35, 216, 125, 0.19), rgba(35, 216, 125, 0.09));
-    transform: translateY(-1px);
-  }
-
-  .step.done {
-    color: var(--green);
-    border-color: rgba(35, 216, 125, 0.22);
-  }
-
-  .panel {
-    border-radius: 24px;
-    padding: 20px;
-  }
-
-  .panel-title {
-    font-size: 29px;
-    font-weight: 950;
-    letter-spacing: -0.045em;
-    line-height: 1.02;
-    margin-bottom: 10px;
-  }
-
-  .panel-subtitle {
-    color: var(--muted);
-    font-size: 15px;
-    font-weight: 750;
-    line-height: 1.32;
-    margin-bottom: 16px;
-  }
-
-  .passenger-row,
-  .confirm-row,
-  .advisory-row {
-    border-radius: 18px;
-    padding: 15px;
-    display: flex;
-    gap: 12px;
-    align-items: center;
-    margin-bottom: 12px;
-  }
-
-  .passenger-name {
-    font-size: 18px;
-    font-weight: 950;
-    letter-spacing: -0.025em;
-    line-height: 1.1;
-  }
-
-  .passenger-seat {
-    color: var(--muted);
-    font-size: 15px;
-    font-weight: 800;
-    margin-top: 4px;
-  }
-
-  input[type="checkbox"] {
-    width: 23px;
-    height: 23px;
-    accent-color: var(--green);
-    flex: 0 0 auto;
-  }
-
-  .details-grid {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 12px;
-    margin-bottom: 16px;
-  }
-
-  .detail-box {
-    border-radius: 18px;
-    padding: 14px;
-  }
-
-  .detail-label {
-    color: var(--muted);
-    font-size: 11px;
-    font-weight: 900;
-    text-transform: uppercase;
-    letter-spacing: 0.1em;
-    margin-bottom: 7px;
-  }
-
-  .detail-value {
-    font-size: 22px;
-    font-weight: 950;
-    letter-spacing: -0.035em;
-    line-height: 1.04;
-  }
-
-  .advisory-list {
-    display: grid;
-    gap: 10px;
-    margin-bottom: 16px;
-  }
-
-  .advisory-icon {
-    width: 34px;
-    height: 34px;
-    border-radius: 13px;
-    background: rgba(67, 169, 255, 0.12);
-    color: var(--blue);
-    display: grid;
-    place-items: center;
-    flex: 0 0 auto;
-    font-weight: 950;
-  }
-
-  .advisory-title {
-    font-size: 16px;
-    font-weight: 950;
-    margin-bottom: 3px;
-  }
-
-  .advisory-text {
-    color: var(--muted);
-    font-size: 14px;
-    font-weight: 700;
-    line-height: 1.35;
-  }
-
-  .passport-notice {
-    border: 1px solid rgba(67, 169, 255, 0.42);
-    background:
-      linear-gradient(180deg, rgba(67, 169, 255, 0.18), rgba(67, 169, 255, 0.08)),
-      rgba(12, 26, 45, 0.72);
-    border-radius: 22px;
-    padding: 16px;
-    display: grid;
-    grid-template-columns: 58px 1fr;
-    gap: 14px;
-    align-items: center;
-    margin-bottom: 18px;
-    box-shadow: inset 0 1px 0 rgba(255,255,255,0.08), 0 18px 42px rgba(0,0,0,0.22);
-  }
-
-  .passport-notice img {
-    width: 58px;
-    height: 58px;
-    object-fit: contain;
-  }
-
-  .notice-title {
-    font-size: 20px;
-    font-weight: 950;
-    letter-spacing: -0.03em;
-    margin-bottom: 4px;
-  }
-
-  .notice-text {
-    color: rgba(255, 255, 255, 0.74);
-    font-size: 14px;
-    font-weight: 750;
-    line-height: 1.35;
-  }
-
-  .button-row {
-    display: grid;
-    grid-template-columns: 0.9fr 1.1fr;
-    gap: 12px;
-    margin-top: 16px;
-  }
-
-  .button-row.single {
-    grid-template-columns: 1fr;
-  }
-
-  .btn {
-    min-height: 54px;
-    border: none;
-    border-radius: 999px;
-    font-weight: 950;
-    font-size: 17px;
-    cursor: pointer;
-    transition: transform 0.16s ease, opacity 0.16s ease, background 0.16s ease;
-  }
-
-  .btn:active {
-    transform: scale(0.975);
-  }
-
-  .btn.secondary {
-    background: rgba(255, 255, 255, 0.1);
-    color: var(--text);
-    border: 1px solid var(--line-strong);
-  }
-
-  .btn.primary {
-    position: relative;
-    overflow: hidden;
-    background: linear-gradient(180deg, #2de88c, #14b969);
-    color: #04120a;
-    box-shadow: 0 14px 34px rgba(20, 185, 105, 0.24);
-  }
-
-  .btn.primary::after {
-    content: "";
-    position: absolute;
-    inset: 0;
-    background: linear-gradient(110deg, transparent 0%, rgba(255,255,255,0.25) 45%, transparent 65%);
-    transform: translateX(-120%);
-  }
-
-  .btn.primary:not(:disabled):active::after {
-    animation: shimmer 0.55s ease;
-  }
-
-  .btn:disabled {
-    opacity: 0.4;
-    cursor: not-allowed;
-    box-shadow: none;
-  }
-
-  .modal-cover {
-    position: fixed;
-    inset: 0;
-    background: rgba(0, 0, 0, 0.68);
-    display: grid;
-    place-items: center;
-    padding: 24px;
-    z-index: 20;
-    animation: modalFadeIn 0.24s ease both;
-    backdrop-filter: blur(12px);
-  }
-
-  .modal {
-    width: min(100%, 350px);
-    border: 1px solid var(--line);
-    border-radius: 26px;
-    background:
-      linear-gradient(180deg, rgba(255,255,255,0.09), rgba(255,255,255,0.04)),
-      rgba(15, 22, 34, 0.95);
-    padding: 28px;
-    text-align: center;
-    box-shadow: 0 28px 90px rgba(0, 0, 0, 0.48);
-    animation: modalPopIn 0.32s cubic-bezier(.2,.8,.2,1) both;
-  }
-
-  .spinner {
-    width: 54px;
-    height: 54px;
-    margin: 0 auto 18px;
-    border-radius: 50%;
-    border: 4px solid rgba(255,255,255,0.14);
-    border-top-color: var(--green);
-    animation: spin 1s linear infinite;
-  }
-
-  .modal.success .spinner {
-    animation: none;
-    border: none;
-    background: var(--green);
-    color: #04120a;
-    display: grid;
-    place-items: center;
-    font-size: 30px;
-    font-weight: 950;
-  }
-
-  .modal.success .spinner::before {
-    content: "✓";
-  }
-
-  .modal-title {
-    font-size: 24px;
-    font-weight: 950;
-    letter-spacing: -0.04em;
-    margin-bottom: 6px;
-  }
-
-  .modal-text {
-    color: var(--muted);
-    font-size: 15px;
-    font-weight: 750;
-  }
-
-  @keyframes spin {
-    to { transform: rotate(360deg); }
-  }
-
-  @media (max-width: 560px) {
     .app {
-      width: 100%;
-      padding: calc(13px + env(safe-area-inset-top)) 14px calc(26px + env(safe-area-inset-bottom));
+      width: min(100%, 720px);
+      min-height: 100svh;
+      margin: 0 auto;
+      padding: calc(18px + env(safe-area-inset-top)) 16px calc(34px + env(safe-area-inset-bottom));
+    }
+
+    .screen {
+      animation: screenIn 0.34s cubic-bezier(.2,.8,.2,1) both;
+    }
+
+    @keyframes screenIn {
+      from {
+        opacity: 0;
+        transform: translateY(14px) scale(0.99);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+      }
+    }
+
+    @keyframes stepIn {
+      from {
+        opacity: 0;
+        transform: translateX(22px) scale(0.985);
+        filter: blur(3px);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateX(0) scale(1);
+        filter: blur(0);
+      }
+    }
+
+    @keyframes stepOut {
+      from {
+        opacity: 1;
+        transform: translateX(0);
+      }
+
+      to {
+        opacity: 0;
+        transform: translateX(-18px);
+      }
+    }
+
+    @keyframes modalIn {
+      from {
+        opacity: 0;
+        transform: translateY(18px) scale(0.95);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+      }
+    }
+
+    @keyframes spin {
+      to {
+        transform: rotate(360deg);
+      }
+    }
+
+    .top {
+      margin-bottom: 18px;
+    }
+
+    .eyebrow {
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 900;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
     }
 
     h1 {
-      font-size: clamp(28px, 8.7vw, 38px);
+      margin: 5px 0 0;
+      font-size: clamp(34px, 10vw, 56px);
+      line-height: 0.96;
+      letter-spacing: -0.055em;
     }
 
-    .flow-header {
-      gap: 10px;
-      margin-bottom: 12px;
+    .progress-wrap {
+      margin: 18px 0 18px;
     }
 
-    .flow-header h1 {
-      font-size: clamp(32px, 10vw, 42px);
+    .progress {
+      width: min(100%, 330px);
+      margin: 0 auto 16px;
+      position: relative;
+      height: 34px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
     }
 
-    .back-button {
-      width: 46px;
-      height: 46px;
-      font-size: 24px;
+    .progress-line,
+    .progress-fill {
+      position: absolute;
+      left: 13px;
+      right: 13px;
+      top: 50%;
+      height: 3px;
+      border-radius: 999px;
+      transform: translateY(-50%);
     }
 
-    .selected-flight-card {
-      grid-template-columns: 42px 1fr;
-      gap: 11px;
-      padding: 13px;
-      border-radius: 20px;
-      margin-bottom: 12px;
+    .progress-line {
+      background: rgba(255, 255, 255, 0.16);
     }
 
-    .ready-card {
-      grid-template-columns: 42px 1fr;
-      gap: 11px;
-      padding: 13px;
-      border-radius: 20px;
+    .progress-fill {
+      right: auto;
+      width: var(--progress-width, 0%);
+      background: linear-gradient(90deg, var(--green), #7df7b6);
+      transition: width 0.34s cubic-bezier(.2,.8,.2,1);
+    }
+
+    .dot {
+      width: 26px;
+      height: 26px;
+      border-radius: 50%;
+      border: 2px solid rgba(255, 255, 255, 0.2);
+      background: #111827;
+      position: relative;
+      z-index: 1;
+      transition: background 0.24s ease, border-color 0.24s ease, transform 0.24s ease;
+    }
+
+    .dot.active {
+      border-color: rgba(34, 216, 122, 0.8);
+      background: var(--green);
+      transform: scale(1.08);
+      box-shadow: 0 0 0 6px rgba(34, 216, 122, 0.13);
+    }
+
+    .progress-underline {
+      height: 1px;
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.55), transparent);
+    }
+
+    .flight-hero {
+      border: 1px solid var(--line);
+      border-radius: 24px;
+      background:
+        linear-gradient(180deg, rgba(255,255,255,0.08), rgba(255,255,255,0.035)),
+        var(--panel);
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.08), 0 20px 52px rgba(0,0,0,0.28);
+      backdrop-filter: blur(18px);
+      padding: 16px;
+      display: grid;
+      grid-template-columns: 52px 1fr;
+      gap: 14px;
+      align-items: center;
+      margin-bottom: 18px;
     }
 
     .airline-logo {
-      width: 42px;
-      height: 42px;
+      width: 52px;
+      height: 52px;
+      object-fit: contain;
     }
 
-    .route-main {
-      font-size: 25px;
+    .route {
+      font-size: clamp(30px, 9vw, 44px);
+      font-weight: 950;
+      line-height: 1;
+      letter-spacing: -0.055em;
     }
 
-    .route-meta {
-      font-size: 13px;
+    .route span {
+      color: var(--blue);
     }
 
-    .reservation {
-      grid-column: 2;
-      text-align: left;
-      font-size: 22px;
-      margin-top: 1px;
+    .hero-meta {
+      margin-top: 8px;
+      color: var(--muted);
+      font-size: 14px;
+      font-weight: 800;
     }
 
-    .stepper {
-      gap: 7px;
-      margin-bottom: 12px;
+    .hero-code {
+      margin-top: 10px;
+      color: var(--blue);
+      font-size: 23px;
+      font-weight: 950;
+      letter-spacing: 0.05em;
     }
 
-    .stepper.intl {
-      grid-template-columns: repeat(2, minmax(0, 1fr));
+    .step-panel {
+      animation: stepIn 0.34s cubic-bezier(.2,.8,.2,1) both;
     }
 
-    .step {
-      min-height: 48px;
-      border-radius: 14px;
-      font-size: 10px;
-      padding: 6px;
-    }
-
-    .panel {
-      padding: 16px;
-      border-radius: 22px;
+    .step-panel.exiting {
+      animation: stepOut 0.2s ease both;
     }
 
     .panel-title {
-      font-size: 26px;
+      margin: 0 0 18px;
+      font-size: clamp(30px, 8.8vw, 44px);
+      line-height: 1.02;
+      font-weight: 950;
+      letter-spacing: -0.055em;
     }
 
-    .panel-subtitle {
-      font-size: 14px;
-      margin-bottom: 14px;
+    .passenger-card,
+    .advisory-card,
+    .details-card,
+    .arrival-card {
+      border: 1px solid var(--line);
+      border-radius: 24px;
+      background:
+        linear-gradient(180deg, rgba(255,255,255,0.075), rgba(255,255,255,0.035)),
+        var(--panel);
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.08), 0 18px 46px rgba(0,0,0,0.24);
+      backdrop-filter: blur(18px);
     }
 
-    .passenger-row,
-    .confirm-row,
-    .advisory-row {
-      padding: 13px;
-      border-radius: 17px;
+    .passenger-card {
+      width: 100%;
+      min-height: 104px;
+      padding: 18px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 18px;
+      cursor: pointer;
+      transition: border-color 0.22s ease, transform 0.18s ease, background 0.22s ease, box-shadow 0.22s ease;
+    }
+
+    .passenger-card:hover {
+      border-color: rgba(67, 169, 255, 0.7);
+      background:
+        linear-gradient(180deg, rgba(67,169,255,0.12), rgba(255,255,255,0.04)),
+        var(--panel);
+    }
+
+    .passenger-card:active {
+      transform: scale(0.985);
+    }
+
+    .passenger-card.selected {
+      border-color: rgba(67, 169, 255, 0.92);
+      box-shadow:
+        inset 0 1px 0 rgba(255,255,255,0.1),
+        0 0 0 4px rgba(67, 169, 255, 0.16),
+        0 18px 46px rgba(0,0,0,0.24);
     }
 
     .passenger-name {
-      font-size: 16px;
+      font-size: 24px;
+      font-weight: 950;
+      letter-spacing: -0.04em;
     }
 
     .passenger-seat {
-      font-size: 14px;
+      margin-top: 5px;
+      color: var(--muted);
+      font-size: 16px;
+      font-weight: 800;
     }
 
-    input[type="checkbox"] {
-      width: 21px;
-      height: 21px;
+    .selected-pill {
+      color: var(--blue);
+      font-size: 13px;
+      font-weight: 950;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      opacity: 0;
+      transition: opacity 0.2s ease;
     }
 
-    .details-grid {
-      grid-template-columns: 1fr;
-      gap: 10px;
+    .passenger-card.selected .selected-pill {
+      opacity: 1;
     }
 
-    .detail-box {
-      padding: 12px;
-      border-radius: 16px;
+    .advisory-list {
+      display: grid;
+      gap: 12px;
     }
 
-    .detail-value {
-      font-size: 20px;
+    .advisory-card {
+      padding: 16px;
+      display: grid;
+      grid-template-columns: 42px 1fr;
+      gap: 14px;
+      align-items: start;
     }
 
     .advisory-icon {
-      width: 32px;
-      height: 32px;
+      width: 42px;
+      height: 42px;
+      border-radius: 15px;
+      display: grid;
+      place-items: center;
+      background: rgba(67, 169, 255, 0.12);
+      color: var(--blue);
+      font-size: 14px;
+      font-weight: 950;
     }
 
     .advisory-title {
-      font-size: 15px;
+      font-size: 17px;
+      font-weight: 950;
+      letter-spacing: -0.02em;
+      margin-bottom: 4px;
     }
 
     .advisory-text {
-      font-size: 13px;
+      color: var(--muted);
+      font-size: 14px;
+      font-weight: 700;
+      line-height: 1.38;
+    }
+
+    .details-card {
+      overflow: hidden;
+    }
+
+    .details-route-band {
+      padding: 18px;
+      background:
+        radial-gradient(circle at top right, rgba(67, 169, 255, 0.18), transparent 40%),
+        rgba(255, 255, 255, 0.04);
+      border-bottom: 1px solid var(--line);
+    }
+
+    .details-route {
+      font-size: clamp(33px, 10vw, 50px);
+      font-weight: 950;
+      line-height: 1;
+      letter-spacing: -0.055em;
+    }
+
+    .details-route span {
+      color: var(--blue);
+    }
+
+    .details-subroute {
+      margin-top: 8px;
+      color: var(--muted);
+      font-size: 15px;
+      font-weight: 800;
+    }
+
+    .timeline {
+      padding: 18px;
+      display: grid;
+      gap: 16px;
+    }
+
+    .timeline-row {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 16px;
+      align-items: end;
+    }
+
+    .timeline-label {
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 900;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      margin-bottom: 5px;
+    }
+
+    .timeline-airport {
+      font-size: 23px;
+      font-weight: 950;
+      letter-spacing: -0.04em;
+    }
+
+    .timeline-city {
+      color: var(--muted);
+      font-size: 14px;
+      font-weight: 750;
+      margin-top: 3px;
+    }
+
+    .timeline-time {
+      font-size: 31px;
+      font-weight: 950;
+      letter-spacing: -0.055em;
+      white-space: nowrap;
+    }
+
+    .details-divider {
+      height: 1px;
+      background: linear-gradient(90deg, rgba(255,255,255,0.12), rgba(255,255,255,0.32), rgba(255,255,255,0.12));
+    }
+
+    .details-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 1px;
+      background: var(--line);
+      border-top: 1px solid var(--line);
+    }
+
+    .detail-stat {
+      background: rgba(11, 16, 27, 0.72);
+      padding: 14px 12px;
+    }
+
+    .detail-label {
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 900;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      margin-bottom: 7px;
+    }
+
+    .detail-value {
+      font-size: 18px;
+      font-weight: 950;
+      letter-spacing: -0.03em;
+      overflow-wrap: anywhere;
+    }
+
+    .arrival-card {
+      padding: 16px;
     }
 
     .passport-notice {
-      grid-template-columns: 46px 1fr;
-      gap: 12px;
-      padding: 14px;
-      border-radius: 18px;
+      border: 1px solid rgba(67, 169, 255, 0.42);
+      background:
+        linear-gradient(180deg, rgba(67, 169, 255, 0.18), rgba(67, 169, 255, 0.08)),
+        rgba(12, 26, 45, 0.72);
+      border-radius: 22px;
+      padding: 16px;
+      display: grid;
+      grid-template-columns: 58px 1fr;
+      gap: 14px;
+      align-items: center;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.08), 0 18px 42px rgba(0,0,0,0.22);
     }
 
     .passport-notice img {
-      width: 46px;
-      height: 46px;
+      width: 58px;
+      height: 58px;
+      object-fit: contain;
     }
 
     .notice-title {
-      font-size: 17px;
+      font-size: 20px;
+      font-weight: 950;
+      letter-spacing: -0.03em;
+      margin-bottom: 4px;
     }
 
     .notice-text {
-      font-size: 13px;
+      color: rgba(255, 255, 255, 0.74);
+      font-size: 14px;
+      font-weight: 750;
+      line-height: 1.35;
     }
 
-    .btn {
-      min-height: 51px;
-      font-size: 16px;
+    .arrival-meta {
+      margin-top: 14px;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
     }
-  }
-</style>
+
+    .button-row {
+      margin-top: 20px;
+    }
+
+    .continue-button {
+      width: 100%;
+      min-height: 58px;
+      border: none;
+      border-radius: 999px;
+      background: linear-gradient(180deg, #2ce98c, #12b967);
+      color: #04140b;
+      font-size: 18px;
+      font-weight: 950;
+      cursor: pointer;
+      box-shadow: 0 16px 34px rgba(18, 185, 103, 0.25);
+      transition: transform 0.16s ease, opacity 0.16s ease;
+    }
+
+    .continue-button:active {
+      transform: scale(0.975);
+    }
+
+    .continue-button:disabled {
+      opacity: 0.42;
+      cursor: not-allowed;
+      box-shadow: none;
+    }
+
+    .unavailable {
+      min-height: calc(100svh - 70px);
+      display: grid;
+      place-items: center;
+    }
+
+    .unavailable-card {
+      width: min(100%, 430px);
+      border: 1px solid var(--line);
+      border-radius: 26px;
+      background:
+        radial-gradient(circle at top, rgba(255, 75, 85, 0.16), transparent 45%),
+        linear-gradient(180deg, rgba(255,255,255,0.08), rgba(255,255,255,0.035)),
+        var(--panel);
+      padding: 30px 24px;
+      text-align: center;
+      box-shadow: 0 24px 70px rgba(0, 0, 0, 0.35);
+    }
+
+    .unavailable-icon {
+      width: 70px;
+      height: 70px;
+      border-radius: 50%;
+      display: grid;
+      place-items: center;
+      margin: 0 auto 18px;
+      background: rgba(255,255,255,0.08);
+      color: var(--red);
+      font-size: 18px;
+      font-weight: 950;
+    }
+
+    .unavailable-title {
+      font-size: 28px;
+      font-weight: 950;
+      letter-spacing: -0.045em;
+      margin-bottom: 8px;
+    }
+
+    .unavailable-text {
+      color: var(--muted);
+      font-size: 15px;
+      font-weight: 750;
+      line-height: 1.4;
+    }
+
+    .modal-cover {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.7);
+      display: grid;
+      place-items: center;
+      padding: 24px;
+      z-index: 20;
+      backdrop-filter: blur(14px);
+    }
+
+    .modal {
+      width: min(100%, 360px);
+      border: 1px solid var(--line);
+      border-radius: 28px;
+      background:
+        linear-gradient(180deg, rgba(255,255,255,0.09), rgba(255,255,255,0.04)),
+        var(--panel-strong);
+      padding: 30px;
+      text-align: center;
+      box-shadow: 0 30px 90px rgba(0, 0, 0, 0.48);
+      animation: modalIn 0.32s cubic-bezier(.2,.8,.2,1) both;
+    }
+
+    .spinner {
+      width: 56px;
+      height: 56px;
+      border-radius: 50%;
+      border: 4px solid rgba(255,255,255,0.14);
+      border-top-color: var(--green);
+      margin: 0 auto 18px;
+      animation: spin 1s linear infinite;
+    }
+
+    .modal.success .spinner {
+      animation: none;
+      border: none;
+      background: var(--green);
+      color: #04140b;
+      display: grid;
+      place-items: center;
+      font-size: 30px;
+      font-weight: 950;
+    }
+
+    .modal.success .spinner::before {
+      content: "OK";
+      font-size: 17px;
+    }
+
+    .modal-title {
+      font-size: 25px;
+      font-weight: 950;
+      letter-spacing: -0.04em;
+      margin-bottom: 6px;
+    }
+
+    .modal-text {
+      color: var(--muted);
+      font-size: 15px;
+      font-weight: 750;
+    }
+
+    @media (max-width: 520px) {
+      .app {
+        padding: calc(14px + env(safe-area-inset-top)) 14px calc(28px + env(safe-area-inset-bottom));
+      }
+
+      .flight-hero {
+        grid-template-columns: 46px 1fr;
+        padding: 14px;
+        border-radius: 22px;
+      }
+
+      .airline-logo {
+        width: 44px;
+        height: 44px;
+      }
+
+      .hero-code {
+        font-size: 21px;
+      }
+
+      .progress {
+        width: min(100%, 290px);
+      }
+
+      .passenger-name {
+        font-size: 21px;
+      }
+
+      .details-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .timeline-row {
+        grid-template-columns: 1fr;
+        gap: 8px;
+      }
+
+      .timeline-time {
+        font-size: 29px;
+      }
+
+      .passport-notice {
+        grid-template-columns: 48px 1fr;
+        padding: 14px;
+      }
+
+      .passport-notice img {
+        width: 48px;
+        height: 48px;
+      }
+
+      .arrival-meta {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
 </head>
 
 <body>
   <main class="app">
-    <section class="page-view" id="homePage">
-      <div class="topbar">
-        <div class="brand">
-          <div class="eyebrow">MSFS Passenger Services</div>
-          <h1>Flights ready for Check in</h1>
-        </div>
-        <button class="refresh-dot" id="refreshButton" type="button" aria-label="Refresh">↻</button>
+    <section class="screen hidden" id="checkInScreen">
+      <div class="top">
+        <div class="eyebrow">Secure Check In</div>
+        <h1 id="pageTitle">Check in</h1>
       </div>
 
-      <div class="underline"></div>
+      <section class="flight-hero" id="flightHero"></section>
 
-      <div class="flight-list" id="flightList"></div>
+      <div class="progress-wrap">
+        <div class="progress" id="progressBar"></div>
+        <div class="progress-underline"></div>
+      </div>
+
+      <section class="step-panel" id="stepPanel"></section>
     </section>
 
-    <section class="locked-wrap page-view hidden" id="lockedPage">
-      <div class="locked-card">
-        <div class="lock-icon">🔒</div>
-        <div class="locked-title">This site is locked</div>
-        <div class="locked-subtitle">Check in opens 24 hours before scheduled departure.</div>
+    <section class="screen unavailable hidden" id="unavailableScreen">
+      <div class="unavailable-card">
+        <div class="unavailable-icon">LOCK</div>
+        <div class="unavailable-title" id="unavailableTitle">This site is locked</div>
+        <div class="unavailable-text" id="unavailableText">Check in opens 24 hours before scheduled departure.</div>
       </div>
-    </section>
-
-    <section class="flow-page page-view hidden" id="flowPage">
-      <div class="flow-header">
-        <button class="back-button" id="flowBackButton" type="button" aria-label="Back">‹</button>
-        <div>
-          <div class="eyebrow">Secure Check In</div>
-          <h1 id="flowTitle">Check in</h1>
-        </div>
-      </div>
-
-      <div id="selectedFlightCard"></div>
-      <div class="stepper" id="stepper"></div>
-      <section class="panel" id="stepPanel"></section>
     </section>
   </main>
 
@@ -889,33 +781,35 @@
 
     const PASSENGER_NAME = "SHLOAK PATEL";
 
-    const homePage = document.getElementById("homePage");
-    const lockedPage = document.getElementById("lockedPage");
-    const flowPage = document.getElementById("flowPage");
-    const flightList = document.getElementById("flightList");
-    const refreshButton = document.getElementById("refreshButton");
-    const flowBackButton = document.getElementById("flowBackButton");
-    const flowTitle = document.getElementById("flowTitle");
-    const selectedFlightCard = document.getElementById("selectedFlightCard");
-    const stepper = document.getElementById("stepper");
+    const checkInScreen = document.getElementById("checkInScreen");
+    const unavailableScreen = document.getElementById("unavailableScreen");
+    const unavailableTitle = document.getElementById("unavailableTitle");
+    const unavailableText = document.getElementById("unavailableText");
+    const pageTitle = document.getElementById("pageTitle");
+    const flightHero = document.getElementById("flightHero");
+    const progressBar = document.getElementById("progressBar");
     const stepPanel = document.getElementById("stepPanel");
     const loadingModal = document.getElementById("loadingModal");
     const modalBox = document.getElementById("modalBox");
     const modalTitle = document.getElementById("modalTitle");
     const modalText = document.getElementById("modalText");
 
-    let allFlights = [];
-    let readyFlights = [];
+    const params = new URLSearchParams(window.location.search);
+    const flightId = params.get("flightId") || "";
+    const returnUrl = params.get("returnUrl") || "";
+
     let activeFlight = null;
     let activeStep = 0;
     let passengerSelected = false;
-    let flightConfirmed = false;
-    let advisoriesConfirmed = false;
 
-    const params = new URLSearchParams(window.location.search);
-    const directFlightId = params.get("flightId") || "";
-const returnUrl = params.get("returnUrl") || "";
-let directFlightOpened = false;
+    function escapeHTML(value) {
+      return String(value ?? "")
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
+    }
 
     function buildLocalDateTime(dateValue, timeValue) {
       if (!dateValue || !timeValue) return null;
@@ -956,7 +850,7 @@ let directFlightOpened = false;
       return openDate && new Date() >= openDate;
     }
 
-    function isReadyForCheckIn(flight) {
+    function isEligibleForCheckIn(flight) {
       if (!flight) return false;
       if (flight.checkedIn === true) return false;
       if (flight.phase && flight.phase !== "scheduled") return false;
@@ -1025,396 +919,283 @@ let directFlightOpened = false;
       return code;
     }
 
-    function showPage(page) {
-      homePage.classList.toggle("hidden", page !== "home");
-      lockedPage.classList.toggle("hidden", page !== "locked");
-      flowPage.classList.toggle("hidden", page !== "flow");
-    }
+    function getSteps() {
+      const steps = ["Passenger", "Advisories", "Flight"];
 
-    function renderLogo(flight) {
-      const airline = flight.airline || "AA";
-
-      return `
-        <img
-          class="airline-logo"
-          src="${getAirlineLogoPath(airline)}"
-          alt="${airline} logo"
-          onerror="this.style.display='none';"
-        />
-      `;
-    }
-
-    function renderFlightCard(flight) {
-  const card = document.createElement("article");
-  card.className = "ready-card";
-  card.dataset.flightId = flight.id;
-
-  card.innerHTML = `
-    ${renderLogo(flight)}
-    <div>
-      <div class="route-main">
-        <span class="airport">${flight.departureAirport || "DEP"}</span>
-        <span> &rarr; </span>
-        <span class="airport">${flight.arrivalAirport || "ARR"}</span>
-      </div>
-      <div class="route-meta">
-        ${formatDate(flight.flightDateRaw)} &bull; ${formatTime(flight.scheduledDeparture)} &bull; ${flight.airline || "AA"} ${flight.flightNumber || "0000"}
-      </div>
-    </div>
-    <div class="reservation">${getReservationCode(flight)}</div>
-  `;
-
-  card.addEventListener("click", () => {
-    openFlow(flight);
-  });
-
-  return card;
-}
-
-    function renderSelectedFlightCard(flight) {
-  selectedFlightCard.innerHTML = `
-    <article class="selected-flight-card">
-      ${renderLogo(flight)}
-      <div>
-        <div class="route-main">
-          <span class="airport">${flight.departureAirport || "DEP"}</span>
-          <span> &rarr; </span>
-          <span class="airport">${flight.arrivalAirport || "ARR"}</span>
-        </div>
-        <div class="route-meta">
-          ${formatDate(flight.flightDateRaw)} &bull; ${formatTime(flight.scheduledDeparture)}
-        </div>
-      </div>
-      <div class="reservation">${getReservationCode(flight)}</div>
-    </article>
-  `;
-}
-
-    function renderHome() {
-      readyFlights = allFlights
-        .filter(isReadyForCheckIn)
-        .sort((a, b) => {
-          const aDate = getDepartureDateTime(a);
-          const bDate = getDepartureDateTime(b);
-          return (aDate?.getTime() || 0) - (bDate?.getTime() || 0);
-        });
-
-      flightList.innerHTML = "";
-
-      if (readyFlights.length === 0) {
-        showPage("locked");
-        return;
-      }
-
-      readyFlights.forEach((flight) => {
-        flightList.appendChild(renderFlightCard(flight));
-      });
-
-      showPage("home");
-
-      if (directFlightId && !directFlightOpened) {
-  const directFlight = readyFlights.find((flight) => flight.id === directFlightId);
-
-  if (directFlight) {
-    directFlightOpened = true;
-    openFlow(directFlight);
-  }
-}
-    }
-
-    function getSteps(flight) {
-      const steps = [
-        "Passenger Information",
-        "Flight Details",
-        "Advisories"
-      ];
-
-      if (flight.internationalUSArrival === true) {
-        steps.push("Arrival Information");
+      if (activeFlight?.internationalUSArrival === true) {
+        steps.push("Arrival");
       }
 
       return steps;
     }
 
-    function renderStepper() {
-      const steps = getSteps(activeFlight);
+    function showUnavailable(title, text) {
+      checkInScreen.classList.add("hidden");
+      unavailableScreen.classList.remove("hidden");
+      unavailableTitle.textContent = title;
+      unavailableText.textContent = text;
+    }
 
-      stepper.classList.toggle("intl", steps.length === 4);
-      stepper.innerHTML = "";
+    function showCheckIn() {
+      unavailableScreen.classList.add("hidden");
+      checkInScreen.classList.remove("hidden");
+    }
 
-      steps.forEach((label, index) => {
-        const item = document.createElement("div");
-        item.className = "step";
-        item.classList.toggle("active", index === activeStep);
-        item.classList.toggle("done", index < activeStep);
-        item.textContent = label;
-        stepper.appendChild(item);
-      });
+    function renderHero() {
+      const airline = activeFlight.airline || "AA";
+
+      pageTitle.textContent = `${activeFlight.departureAirport || "DEP"} to ${activeFlight.arrivalAirport || "ARR"}`;
+
+      flightHero.innerHTML = `
+        <img
+          class="airline-logo"
+          src="${getAirlineLogoPath(airline)}"
+          alt="${escapeHTML(airline)} logo"
+          onerror="this.style.display='none';"
+        />
+        <div>
+          <div class="route">
+            <span>${escapeHTML(activeFlight.departureAirport || "DEP")}</span>
+            &rarr;
+            <span>${escapeHTML(activeFlight.arrivalAirport || "ARR")}</span>
+          </div>
+          <div class="hero-meta">
+            ${escapeHTML(formatDate(activeFlight.flightDateRaw))} &bull; ${escapeHTML(formatTime(activeFlight.scheduledDeparture))} &bull; ${escapeHTML(airline)} ${escapeHTML(activeFlight.flightNumber || "0000")}
+          </div>
+          <div class="hero-code">${escapeHTML(getReservationCode(activeFlight))}</div>
+        </div>
+      `;
+    }
+
+    function renderProgress() {
+      const steps = getSteps();
+      const progressPercent = steps.length <= 1
+        ? 0
+        : (activeStep / (steps.length - 1)) * 100;
+
+      progressBar.style.setProperty("--progress-width", `${progressPercent}%`);
+
+      progressBar.innerHTML = `
+        <div class="progress-line"></div>
+        <div class="progress-fill"></div>
+        ${steps.map((step, index) => `
+          <div class="dot ${index <= activeStep ? "active" : ""}" aria-label="${escapeHTML(step)}"></div>
+        `).join("")}
+      `;
     }
 
     function renderPassengerStep() {
       stepPanel.innerHTML = `
-        <div class="panel-title">Select passengers to check in</div>
-        <div class="panel-subtitle">Confirm the traveler receiving a boarding pass for this flight.</div>
+        <h2 class="panel-title">Select passengers to check in</h2>
 
-        <label class="passenger-row">
-          <input type="checkbox" id="passengerCheckbox" ${passengerSelected ? "checked" : ""} />
+        <button class="passenger-card ${passengerSelected ? "selected" : ""}" id="passengerCard" type="button">
           <div>
-            <div class="passenger-name">${PASSENGER_NAME} - ${activeFlight.assignedSeat || "--"}</div>
-            <div class="passenger-seat">${activeFlight.seatCabin || "Economy"}</div>
+            <div class="passenger-name">${PASSENGER_NAME}</div>
+            <div class="passenger-seat">Seat ${escapeHTML(activeFlight.assignedSeat || "--")} &bull; ${escapeHTML(activeFlight.seatCabin || "Economy")}</div>
           </div>
-        </label>
+          <div class="selected-pill">Selected</div>
+        </button>
 
         <div class="button-row">
-          <button class="btn secondary" id="backHomeButton" type="button">Back</button>
-          <button class="btn primary" id="nextButton" type="button" ${passengerSelected ? "" : "disabled"}>Next</button>
+          <button class="continue-button" id="continueButton" type="button" ${passengerSelected ? "" : "disabled"}>Continue</button>
         </div>
       `;
 
-      const checkbox = document.getElementById("passengerCheckbox");
-      const nextButton = document.getElementById("nextButton");
+      const passengerCard = document.getElementById("passengerCard");
+      const continueButton = document.getElementById("continueButton");
 
-      checkbox.addEventListener("change", () => {
-        passengerSelected = checkbox.checked;
-        nextButton.disabled = !passengerSelected;
+      passengerCard.addEventListener("click", () => {
+        passengerSelected = true;
+        passengerCard.classList.add("selected");
+        continueButton.disabled = false;
       });
 
-      document.getElementById("backHomeButton").addEventListener("click", () => {
-  directFlightOpened = true;
-  closeFlow();
-});
-      nextButton.addEventListener("click", () => {
-        activeStep = 1;
-        renderFlow();
+      continueButton.addEventListener("click", () => {
+        transitionToStep(1);
+      });
+    }
+
+    function renderAdvisoriesStep() {
+      stepPanel.innerHTML = `
+        <h2 class="panel-title">Travel advisories</h2>
+
+        <div class="advisory-list">
+          <section class="advisory-card">
+            <div class="advisory-icon">HAZ</div>
+            <div>
+              <div class="advisory-title">Hazardous materials</div>
+              <div class="advisory-text">Do not pack explosives, compressed gases, flammable liquids, lithium battery hazards, or other restricted materials.</div>
+            </div>
+          </section>
+
+          <section class="advisory-card">
+            <div class="advisory-icon">3.4</div>
+            <div>
+              <div class="advisory-title">Liquids and gels</div>
+              <div class="advisory-text">Carry-on liquids should follow standard security limits unless they are medically required or packed in checked baggage.</div>
+            </div>
+          </section>
+
+          <section class="advisory-card">
+            <div class="advisory-icon">ID</div>
+            <div>
+              <div class="advisory-title">Travel documents</div>
+              <div class="advisory-text">Names, identification, and travel documents must match the passenger traveling on this reservation.</div>
+            </div>
+          </section>
+
+          <section class="advisory-card">
+            <div class="advisory-icon">SEC</div>
+            <div>
+              <div class="advisory-title">Security screening</div>
+              <div class="advisory-text">All passengers and baggage remain subject to screening before departure.</div>
+            </div>
+          </section>
+        </div>
+
+        <div class="button-row">
+          <button class="continue-button" id="continueButton" type="button">Continue</button>
+        </div>
+      `;
+
+      document.getElementById("continueButton").addEventListener("click", () => {
+        transitionToStep(2);
       });
     }
 
     function renderFlightDetailsStep() {
       const departure = getDepartureDateTime(activeFlight);
       const arrival = getArrivalDateTime(activeFlight);
+      const hasArrivalStep = activeFlight.internationalUSArrival === true;
 
       stepPanel.innerHTML = `
-        <div class="panel-title">Flight details</div>
-        <div class="panel-subtitle">Review your trip before continuing.</div>
+        <h2 class="panel-title">Flight details</h2>
 
-        <div class="details-grid">
-          <div class="detail-box">
-            <div class="detail-label">Flight</div>
-            <div class="detail-value">${activeFlight.airline || "AA"} ${activeFlight.flightNumber || "0000"}</div>
+        <section class="details-card">
+          <div class="details-route-band">
+            <div class="details-route">
+              <span>${escapeHTML(activeFlight.departureAirport || "DEP")}</span>
+              &rarr;
+              <span>${escapeHTML(activeFlight.arrivalAirport || "ARR")}</span>
+            </div>
+            <div class="details-subroute">
+              ${escapeHTML(activeFlight.cityDeparture || "Departure")} to ${escapeHTML(activeFlight.cityArrival || "Arrival")}
+            </div>
           </div>
 
-          <div class="detail-box">
-            <div class="detail-label">Booking Code</div>
-            <div class="detail-value">${getReservationCode(activeFlight)}</div>
+          <div class="timeline">
+            <div class="timeline-row">
+              <div>
+                <div class="timeline-label">Departure</div>
+                <div class="timeline-airport">${escapeHTML(activeFlight.departureAirport || "DEP")}</div>
+                <div class="timeline-city">${escapeHTML(activeFlight.cityDeparture || "Departure")}</div>
+              </div>
+              <div class="timeline-time">${escapeHTML(formatTime(departure))}</div>
+            </div>
+
+            <div class="details-divider"></div>
+
+            <div class="timeline-row">
+              <div>
+                <div class="timeline-label">Arrival</div>
+                <div class="timeline-airport">${escapeHTML(activeFlight.arrivalAirport || "ARR")}</div>
+                <div class="timeline-city">${escapeHTML(activeFlight.cityArrival || "Arrival")}</div>
+              </div>
+              <div class="timeline-time">${escapeHTML(formatTime(arrival))}</div>
+            </div>
           </div>
 
-          <div class="detail-box">
-            <div class="detail-label">Departure</div>
-            <div class="detail-value">${activeFlight.departureAirport || "DEP"} • ${formatTime(departure)}</div>
-          </div>
+          <div class="details-grid">
+            <div class="detail-stat">
+              <div class="detail-label">Flight</div>
+              <div class="detail-value">${escapeHTML(activeFlight.airline || "AA")} ${escapeHTML(activeFlight.flightNumber || "0000")}</div>
+            </div>
 
-          <div class="detail-box">
-            <div class="detail-label">Arrival</div>
-            <div class="detail-value">${activeFlight.arrivalAirport || "ARR"} • ${formatTime(arrival)}</div>
-          </div>
+            <div class="detail-stat">
+              <div class="detail-label">Seat</div>
+              <div class="detail-value">${escapeHTML(activeFlight.assignedSeat || "--")}</div>
+            </div>
 
-          <div class="detail-box">
-            <div class="detail-label">Seat</div>
-            <div class="detail-value">${activeFlight.assignedSeat || "--"}</div>
+            <div class="detail-stat">
+              <div class="detail-label">Code</div>
+              <div class="detail-value">${escapeHTML(getReservationCode(activeFlight))}</div>
+            </div>
           </div>
-
-          <div class="detail-box">
-            <div class="detail-label">Cabin</div>
-            <div class="detail-value">${activeFlight.seatCabin || "Economy"}</div>
-          </div>
-        </div>
-
-        <label class="confirm-row">
-          <input type="checkbox" id="flightConfirmCheckbox" ${flightConfirmed ? "checked" : ""} />
-          <div>
-            <div class="passenger-name">Is this your flight?</div>
-            <div class="passenger-seat">${activeFlight.cityDeparture || "Departure"} to ${activeFlight.cityArrival || "Arrival"}</div>
-          </div>
-        </label>
+        </section>
 
         <div class="button-row">
-          <button class="btn secondary" id="previousButton" type="button">Back</button>
-          <button class="btn primary" id="nextButton" type="button" ${flightConfirmed ? "" : "disabled"}>Next</button>
+          <button class="continue-button" id="continueButton" type="button">${hasArrivalStep ? "Continue" : "Check in"}</button>
         </div>
       `;
 
-      const checkbox = document.getElementById("flightConfirmCheckbox");
-      const nextButton = document.getElementById("nextButton");
-
-      checkbox.addEventListener("change", () => {
-        flightConfirmed = checkbox.checked;
-        nextButton.disabled = !flightConfirmed;
-      });
-
-      document.getElementById("previousButton").addEventListener("click", () => {
-        activeStep = 0;
-        renderFlow();
-      });
-
-      nextButton.addEventListener("click", () => {
-        activeStep = 2;
-        renderFlow();
-      });
-    }
-
-    function renderAdvisoriesStep() {
-      const hasIntlArrival = activeFlight.internationalUSArrival === true;
-      const nextLabel = hasIntlArrival ? "Next" : "Check in";
-
-      stepPanel.innerHTML = `
-        <div class="panel-title">Advisories</div>
-        <div class="panel-subtitle">Review required travel notices before check in is completed.</div>
-
-        <div class="advisory-list">
-          <div class="advisory-row">
-            <div class="advisory-icon">!</div>
-            <div>
-              <div class="advisory-title">Hazardous materials</div>
-              <div class="advisory-text">Do not pack explosives, compressed gases, flammable liquids, or other restricted materials.</div>
-            </div>
-          </div>
-
-          <div class="advisory-row">
-            <div class="advisory-icon">oz</div>
-            <div>
-              <div class="advisory-title">Liquids and gels</div>
-              <div class="advisory-text">Liquids should follow standard security limits unless packed in checked baggage.</div>
-            </div>
-          </div>
-
-          <div class="advisory-row">
-            <div class="advisory-icon">ID</div>
-            <div>
-              <div class="advisory-title">Travel documents</div>
-              <div class="advisory-text">Counterfeit, expired, or mismatched documents may prevent travel.</div>
-            </div>
-          </div>
-
-          <div class="advisory-row">
-            <div class="advisory-icon">✓</div>
-            <div>
-              <div class="advisory-title">Boarding pass issuance</div>
-              <div class="advisory-text">Your boarding pass becomes available on the main flight site after check in is complete.</div>
-            </div>
-          </div>
-        </div>
-
-        <label class="confirm-row">
-          <input type="checkbox" id="advisoryCheckbox" ${advisoriesConfirmed ? "checked" : ""} />
-          <div>
-            <div class="passenger-name">I understand</div>
-            <div class="passenger-seat">Required notices reviewed</div>
-          </div>
-        </label>
-
-        <div class="button-row">
-          <button class="btn secondary" id="previousButton" type="button">Back</button>
-          <button class="btn primary" id="nextButton" type="button" ${advisoriesConfirmed ? "" : "disabled"}>${nextLabel}</button>
-        </div>
-      `;
-
-      const checkbox = document.getElementById("advisoryCheckbox");
-      const nextButton = document.getElementById("nextButton");
-
-      checkbox.addEventListener("change", () => {
-        advisoriesConfirmed = checkbox.checked;
-        nextButton.disabled = !advisoriesConfirmed;
-      });
-
-      document.getElementById("previousButton").addEventListener("click", () => {
-        activeStep = 1;
-        renderFlow();
-      });
-
-      nextButton.addEventListener("click", () => {
-        if (hasIntlArrival) {
-          activeStep = 3;
-          renderFlow();
-        } else {
-          completeCheckIn();
+      document.getElementById("continueButton").addEventListener("click", () => {
+        if (hasArrivalStep) {
+          transitionToStep(3);
+          return;
         }
+
+        completeCheckIn();
       });
     }
 
     function renderArrivalStep() {
       stepPanel.innerHTML = `
-        <div class="panel-title">Arrival information</div>
+        <h2 class="panel-title">Arrival details</h2>
 
-        <div class="passport-notice">
-          <img src="./cbp.png" alt="CBP logo" onerror="this.style.display='none';" />
-          <div>
-            <div class="notice-title">International travel requires a valid passport</div>
-            <div class="notice-text">
-              Make sure your passport is valid before entering the United States. You may also need to complete any required arrival or preclearance steps before the flight can be finished.
+        <section class="arrival-card">
+          <div class="passport-notice">
+            <img src="./cbp.png" alt="CBP logo" onerror="this.style.display='none';" />
+            <div>
+              <div class="notice-title">International travel requires a valid passport</div>
+              <div class="notice-text">Make sure your passport is valid before entering the United States. You may need to complete customs or preclearance before this trip can be completed.</div>
             </div>
           </div>
-        </div>
 
-        <div class="details-grid">
-          <div class="detail-box">
-            <div class="detail-label">Arrival Airport</div>
-            <div class="detail-value">${activeFlight.arrivalAirport || "ARR"}</div>
-          </div>
+          <div class="arrival-meta">
+            <div class="detail-stat">
+              <div class="detail-label">Arrival</div>
+              <div class="detail-value">${escapeHTML(activeFlight.arrivalAirport || "ARR")}</div>
+            </div>
 
-          <div class="detail-box">
-            <div class="detail-label">Traveler</div>
-            <div class="detail-value">${PASSENGER_NAME}</div>
+            <div class="detail-stat">
+              <div class="detail-label">Traveler</div>
+              <div class="detail-value">Shloak Patel</div>
+            </div>
           </div>
-        </div>
+        </section>
 
         <div class="button-row">
-          <button class="btn secondary" id="previousButton" type="button">Back</button>
-          <button class="btn primary" id="checkInButton" type="button">Check in</button>
+          <button class="continue-button" id="continueButton" type="button">Check in</button>
         </div>
       `;
 
-      document.getElementById("previousButton").addEventListener("click", () => {
-        activeStep = 2;
-        renderFlow();
-      });
-
-      document.getElementById("checkInButton").addEventListener("click", completeCheckIn);
+      document.getElementById("continueButton").addEventListener("click", completeCheckIn);
     }
 
-    function renderFlow() {
-  if (!activeFlight) return;
+    function renderStep() {
+      renderHero();
+      renderProgress();
 
-  flowTitle.textContent = `${activeFlight.departureAirport || "DEP"} to ${activeFlight.arrivalAirport || "ARR"}`;
-  renderSelectedFlightCard(activeFlight);
-  renderStepper();
+      stepPanel.classList.remove("exiting");
 
-  stepPanel.classList.remove("step-panel-animate");
-  void stepPanel.offsetWidth;
-
-  if (activeStep === 0) renderPassengerStep();
-  if (activeStep === 1) renderFlightDetailsStep();
-  if (activeStep === 2) renderAdvisoriesStep();
-  if (activeStep === 3) renderArrivalStep();
-
-  stepPanel.classList.add("step-panel-animate");
-}
-
-    function openFlow(flight) {
-      activeFlight = flight;
-      activeStep = 0;
-      passengerSelected = false;
-      flightConfirmed = false;
-      advisoriesConfirmed = false;
-
-      showPage("flow");
-      renderFlow();
-      window.scrollTo({ top: 0, behavior: "smooth" });
+      if (activeStep === 0) renderPassengerStep();
+      if (activeStep === 1) renderAdvisoriesStep();
+      if (activeStep === 2) renderFlightDetailsStep();
+      if (activeStep === 3) renderArrivalStep();
     }
 
-    function closeFlow() {
-      activeFlight = null;
-      activeStep = 0;
-      renderHome();
+    function transitionToStep(nextStep) {
+      stepPanel.classList.add("exiting");
+
+      setTimeout(() => {
+        activeStep = nextStep;
+        stepPanel.classList.remove("exiting");
+        stepPanel.style.animation = "none";
+        void stepPanel.offsetWidth;
+        stepPanel.style.animation = "";
+        renderStep();
+        window.scrollTo({ top: 0, behavior: "smooth" });
+      }, 190);
     }
 
     function showLoadingModal() {
@@ -1425,13 +1206,13 @@ let directFlightOpened = false;
     }
 
     function showSuccessModal() {
-  modalBox.style.animation = "none";
-  void modalBox.offsetWidth;
-  modalBox.classList.add("success");
-  modalBox.style.animation = "modalPopIn 0.3s cubic-bezier(.2,.8,.2,1) both";
-  modalTitle.textContent = "Successfully checked in!";
-  modalText.textContent = "Your boarding pass is now available.";
-}
+      modalBox.style.animation = "none";
+      void modalBox.offsetWidth;
+      modalBox.classList.add("success");
+      modalBox.style.animation = "modalIn 0.32s cubic-bezier(.2,.8,.2,1) both";
+      modalTitle.textContent = "Successfully checked in";
+      modalText.textContent = "Your boarding pass is now available.";
+    }
 
     async function completeCheckIn() {
       if (!activeFlight || !activeFlight.id) return;
@@ -1451,14 +1232,13 @@ let directFlightOpened = false;
         showSuccessModal();
 
         setTimeout(() => {
-          loadingModal.classList.add("hidden");
-
           if (returnUrl) {
             window.location.href = returnUrl;
             return;
           }
 
-          closeFlow();
+          loadingModal.classList.add("hidden");
+          showUnavailable("Check in complete", "Your boarding pass is now available on the main flight site.");
         }, 1600);
       } catch (error) {
         console.error("Check in failed:", error);
@@ -1468,34 +1248,55 @@ let directFlightOpened = false;
       }
     }
 
-    flowBackButton.addEventListener("click", () => {
-  directFlightOpened = true;
-  closeFlow();
-});
-    refreshButton.addEventListener("click", renderHome);
+    function startFlight(flight) {
+      activeFlight = flight;
+      activeStep = 0;
+      passengerSelected = false;
+
+      showCheckIn();
+      renderStep();
+    }
+
+    if (!flightId) {
+      showUnavailable("This site is locked", "Open check in from a specific flight on the main site.");
+    }
 
     onSnapshot(collection(db, "flights"), (snapshot) => {
-      allFlights = snapshot.docs.map((flightDoc) => ({
+      if (!flightId) return;
+
+      const flightDoc = snapshot.docs.find((item) => item.id === flightId);
+
+      if (!flightDoc) {
+        showUnavailable("Flight not found", "This check-in session could not find the selected flight.");
+        return;
+      }
+
+      const flight = {
         id: flightDoc.id,
         ...flightDoc.data()
-      }));
+      };
+
+      if (flight.checkedIn === true) {
+        showUnavailable("Already checked in", "Your boarding pass is already available on the main flight site.");
+        return;
+      }
+
+      if (!isEligibleForCheckIn(flight)) {
+        showUnavailable("Check in unavailable", "Check in opens 24 hours before scheduled departure.");
+        return;
+      }
 
       if (!activeFlight) {
-        renderHome();
+        startFlight(flight);
         return;
       }
 
-      const updatedActiveFlight = allFlights.find((flight) => flight.id === activeFlight.id);
-
-      if (!updatedActiveFlight || updatedActiveFlight.checkedIn === true) {
-        closeFlow();
-        return;
-      }
-
-      activeFlight = updatedActiveFlight;
+      activeFlight = flight;
+      renderHero();
+      renderProgress();
     }, (error) => {
-      console.error("Error loading flights:", error);
-      showPage("locked");
+      console.error("Error loading flight:", error);
+      showUnavailable("Unable to load check in", "Reload the page and try again.");
     });
   </script>
 </body>
