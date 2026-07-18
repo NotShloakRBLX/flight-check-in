@@ -988,11 +988,8 @@
   dot.addEventListener("click", () => {
     const nextStep = Number(dot.dataset.step);
 
-    if (Number.isNaN(nextStep) || nextStep === activeStep) return;
-
-    if (nextStep > 0 && passengerSelected !== true) {
-      passengerSelected = true;
-    }
+    if (Number.isNaN(nextStep)) return;
+    if (nextStep >= activeStep) return;
 
     transitionToStep(nextStep);
   });
