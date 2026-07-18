@@ -56,11 +56,11 @@
     }
 
     .app {
-      width: min(100%, 720px);
-      min-height: 100svh;
-      margin: 0 auto;
-      padding: calc(18px + env(safe-area-inset-top)) 16px calc(34px + env(safe-area-inset-bottom));
-    }
+  width: min(100%, 720px);
+  min-height: 100svh;
+  margin: 0 auto;
+  padding: calc(10px + env(safe-area-inset-top)) 16px calc(34px + env(safe-area-inset-bottom));
+}
 
     .screen {
       animation: screenIn 0.34s cubic-bezier(.2,.8,.2,1) both;
@@ -146,25 +146,25 @@
     }
 
     .progress {
-      width: min(100%, 330px);
-      margin: 0 auto 16px;
-      position: relative;
-      height: 34px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-    }
+  width: min(100%, 270px);
+  margin: 0 auto 13px;
+  position: relative;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
 
     .progress-line,
-    .progress-fill {
-      position: absolute;
-      left: 13px;
-      right: 13px;
-      top: 50%;
-      height: 3px;
-      border-radius: 999px;
-      transform: translateY(-50%);
-    }
+.progress-fill {
+  position: absolute;
+  left: 11px;
+  right: 11px;
+  top: 50%;
+  height: 2.5px;
+  border-radius: 999px;
+  transform: translateY(-50%);
+}
 
     .progress-line {
       background: rgba(255, 255, 255, 0.16);
@@ -178,14 +178,16 @@
     }
 
     .dot {
-      width: 26px;
-      height: 26px;
+  width: 22px;
+  height: 22px;
       border-radius: 50%;
       border: 2px solid rgba(255, 255, 255, 0.2);
       background: #111827;
       position: relative;
       z-index: 1;
       transition: background 0.24s ease, border-color 0.24s ease, transform 0.24s ease;
+      cursor: pointer;
+      padding: 0;
     }
 
     .dot.active {
@@ -525,6 +527,12 @@
       gap: 12px;
     }
 
+    .arrival-meta .detail-stat {
+  border-radius: 18px;
+  border: 1px solid var(--line);
+  overflow: hidden;
+}
+
     .button-row {
       margin-top: 20px;
     }
@@ -664,8 +672,8 @@
 
     @media (max-width: 520px) {
       .app {
-        padding: calc(14px + env(safe-area-inset-top)) 14px calc(28px + env(safe-area-inset-bottom));
-      }
+  padding: calc(8px + env(safe-area-inset-top)) 14px calc(28px + env(safe-area-inset-bottom));
+}
 
       .flight-hero {
         grid-template-columns: 46px 1fr;
@@ -683,8 +691,8 @@
       }
 
       .progress {
-        width: min(100%, 290px);
-      }
+  width: min(100%, 245px);
+}
 
       .passenger-name {
         font-size: 21px;
@@ -723,10 +731,6 @@
 <body>
   <main class="app">
     <section class="screen hidden" id="checkInScreen">
-      <div class="top">
-        <div class="eyebrow">Secure Check In</div>
-        <h1 id="pageTitle">Check in</h1>
-      </div>
 
       <section class="flight-hero" id="flightHero"></section>
 
@@ -785,7 +789,6 @@
     const unavailableScreen = document.getElementById("unavailableScreen");
     const unavailableTitle = document.getElementById("unavailableTitle");
     const unavailableText = document.getElementById("unavailableText");
-    const pageTitle = document.getElementById("pageTitle");
     const flightHero = document.getElementById("flightHero");
     const progressBar = document.getElementById("progressBar");
     const stepPanel = document.getElementById("stepPanel");
@@ -944,8 +947,6 @@
     function renderHero() {
       const airline = activeFlight.airline || "AA";
 
-      pageTitle.textContent = `${activeFlight.departureAirport || "DEP"} to ${activeFlight.arrivalAirport || "ARR"}`;
-
       flightHero.innerHTML = `
         <img
           class="airline-logo"
@@ -979,9 +980,23 @@
         <div class="progress-line"></div>
         <div class="progress-fill"></div>
         ${steps.map((step, index) => `
-          <div class="dot ${index <= activeStep ? "active" : ""}" aria-label="${escapeHTML(step)}"></div>
-        `).join("")}
+  <button class="dot ${index <= activeStep ? "active" : ""}" type="button" data-step="${index}" aria-label="${escapeHTML(step)}"></button>
+`).join("")}
       `;
+
+      progressBar.querySelectorAll("[data-step]").forEach((dot) => {
+  dot.addEventListener("click", () => {
+    const nextStep = Number(dot.dataset.step);
+
+    if (Number.isNaN(nextStep) || nextStep === activeStep) return;
+
+    if (nextStep > 0 && passengerSelected !== true) {
+      passengerSelected = true;
+    }
+
+    transitionToStep(nextStep);
+  });
+});
     }
 
     function renderPassengerStep() {
