@@ -482,6 +482,53 @@
       overflow-wrap: anywhere;
     }
 
+        .boarding-status-card {
+      padding: 16px;
+      display: grid;
+      gap: 12px;
+    }
+
+    .boarding-status-box {
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      background: rgba(11, 16, 27, 0.72);
+      padding: 16px;
+      display: grid;
+      grid-template-columns: 46px 1fr;
+      gap: 14px;
+      align-items: center;
+    }
+
+    .boarding-status-box.seat-message {
+      display: block;
+      color: rgba(255, 255, 255, 0.78);
+      font-size: 17px;
+      font-weight: 760;
+      line-height: 1.35;
+    }
+
+    .boarding-status-box.seat-message strong {
+      color: white;
+      font-weight: 950;
+    }
+
+    .checkin-premium-badge {
+      width: 42px;
+      height: 42px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #ffd43b, #ff9f1c);
+      color: white;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 19px;
+      font-weight: 950;
+      box-shadow: 0 14px 34px rgba(255, 180, 40, 0.26);
+    }
+
+    .checkin-premium-badge.premium-economy {
+      background: linear-gradient
+    
     .arrival-card {
       padding: 16px;
     }
@@ -922,8 +969,16 @@
       return code;
     }
 
+        function hasPriorityBoardingStatus(flight) {
+      return flight?.premiumSeat === true || flight?.premiumEconomySeat === true;
+    }
+
     function getSteps() {
       const steps = ["Passenger", "Advisories", "Flight"];
+
+      if (hasPriorityBoardingStatus(activeFlight)) {
+        steps.push("Boarding");
+      }
 
       if (activeFlight?.internationalUSArrival === true) {
         steps.push("Arrival");
@@ -1078,7 +1133,10 @@
     function renderFlightDetailsStep() {
       const departure = getDepartureDateTime(activeFlight);
       const arrival = getArrivalDateTime(activeFlight);
-      const hasArrivalStep = activeFlight.internationalUSArrival === true;
+            const steps = getSteps();
+      const nextStep = steps.indexOf("Flight") + 1;
+      const nextStepName = steps[nextStep];
+      const hasNextStep = nextStep < steps.length;
 
       stepPanel.innerHTML = `
         <h2 class="panel-title">Flight details</h2>
@@ -1136,13 +1194,13 @@
         </section>
 
         <div class="button-row">
-          <button class="continue-button" id="continueButton" type="button">${hasArrivalStep ? "Continue" : "Check in"}</button>
+                    <button class="continue-button" id="continueButton" type="button">${hasNextStep ? "Continue" : "Check in"}</button>
         </div>
       `;
 
-      document.getElementById("continueButton").addEventListener("click", () => {
-        if (hasArrivalStep) {
-          transitionToStep(3);
+            document.getElementById("continueButton").addEventListener("click", () => {
+        if (hasNextStep) {
+          transitionToStep(nextStep);
           return;
         }
 
@@ -1150,6 +1208,43 @@
       });
     }
 
+    function renderBoardingStatusStep() {
+      const steps = getSteps();
+      const nextStep = steps.indexOf("Boarding") + 1;
+      const hasArrivalStep = steps[nextStep] === "Arrival";
+      const isPremiumEconomy = activeFlight.premiumEconomySeat === true;
+      const badgeClass = isPremiumEconomy ? "premium-economy" : "";
+      const seat = activeFlight.assignedSeat || "--";
+
+      stepPanel.innerHTML = `
+        <h2 class="panel-title">Boarding status</h2>
+
+        <section class="details-card boarding-status-card">
+          <div class="boarding-status-box">
+            <div class="checkin-premium-badge ${badgeClass}">P</div>
+            <div class="boarding-status-title">You have priority boarding</div>
+          </div>
+
+          <div class="boarding-status-box seat-message">
+            You are in seat <strong>${escapeHTML(seat)}</strong>. You have priority access for this flight.
+          </div>
+        </section>
+
+        <div class="button-row">
+          <button class="continue-button" id="continueButton" type="button">${hasArrivalStep ? "Continue" : "Check in"}</button>
+        </div>
+      `;
+
+      document.getElementById("continueButton").addEventListener("click", () => {
+        if (hasArrivalStep) {
+          transitionToStep(nextStep);
+          return;
+        }
+
+        completeCheckIn();
+      });
+    }
+    
     function renderArrivalStep() {
       stepPanel.innerHTML = `
         <h2 class="panel-title">Arrival details</h2>
@@ -1190,10 +1285,13 @@
 
       stepPanel.classList.remove("exiting");
 
-      if (activeStep === 0) renderPassengerStep();
-      if (activeStep === 1) renderAdvisoriesStep();
-      if (activeStep === 2) renderFlightDetailsStep();
-      if (activeStep === 3) renderArrivalStep();
+            const currentStep = getSteps()[activeStep];
+
+      if (currentStep === "Passenger") renderPassengerStep();
+      if (currentStep === "Advisories") renderAdvisoriesStep();
+      if (currentStep === "Flight") renderFlightDetailsStep();
+      if (currentStep === "Boarding") renderBoardingStatusStep();
+      if (currentStep === "Arrival") renderArrivalStep();
     }
 
     function transitionToStep(nextStep) {
