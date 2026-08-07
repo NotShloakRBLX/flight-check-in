@@ -741,6 +741,33 @@
       margin-bottom: 18px;
     }
 
+    .confirmation-priority-card {
+  overflow: hidden;
+  margin-bottom: 18px;
+}
+
+.confirmation-priority-top {
+  padding: 18px;
+  background:
+    radial-gradient(circle at top right, rgba(67, 169, 255, 0.18), transparent 40%),
+    rgba(255, 255, 255, 0.04);
+  border-bottom: 1px solid var(--line);
+  color: #ff4b55;
+  font-size: 18px;
+  font-weight: 950;
+  letter-spacing: 0.14em;
+  text-align: center;
+}
+
+.confirmation-priority-bottom {
+  background: rgba(11, 16, 27, 0.76);
+  padding: 18px;
+  color: white;
+  font-size: 18px;
+  font-weight: 850;
+  text-align: center;
+}
+
     .confirmation-top {
       padding: 18px;
       display: grid;
@@ -1514,6 +1541,19 @@
       `;
     }
 
+    function renderPriorityBoardingConfirmation() {
+  if (!hasPriorityBoardingStatus(activeFlight)) return "";
+
+  return `
+    <section class="details-card confirmation-priority-card">
+      <div class="confirmation-priority-top">PRIORITY BOARDING</div>
+      <div class="confirmation-priority-bottom">
+        You are boarding in ${escapeHTML(getBoardingGroupText(activeFlight))}
+      </div>
+    </section>
+  `;
+}
+    
     function renderEntryReminder() {
       if (activeFlight?.internationalUSArrival !== true) return "";
 
@@ -1521,7 +1561,7 @@
         <section class="passport-notice entry-reminder">
           <img src="./cbp.png" alt="CBP logo" onerror="this.style.display='none';" />
           <div>
-            <div class="notice-title">US entry required</div>
+            <div class="notice-title">US Customs and Border Protection</div>
             <div class="notice-text">${escapeHTML(getEntryReminderText(activeFlight))}</div>
           </div>
         </section>
@@ -1574,8 +1614,9 @@
           </div>
         </section>
 
-        ${renderBoardingPassPreview()}
-        ${renderEntryReminder()}
+        ${renderPriorityBoardingConfirmation()}
+${renderBoardingPassPreview()}
+${renderEntryReminder()}
 
         <div class="button-row">
           <button class="continue-button" id="continueButton" type="button">Continue</button>
