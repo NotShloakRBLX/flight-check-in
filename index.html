@@ -310,6 +310,12 @@
         0 18px 46px rgba(0,0,0,0.24);
     }
 
+    .passenger-card > div:first-child {
+  flex: 1;
+  min-width: 0;
+  text-align: left;
+}
+    
     .passenger-name {
       font-size: 24px;
       font-weight: 950;
@@ -317,11 +323,13 @@
     }
 
     .passenger-seat {
-      margin-top: 5px;
-      color: var(--muted);
-      font-size: 16px;
-      font-weight: 800;
-    }
+  margin-top: 5px;
+  color: var(--muted);
+  font-size: 16px;
+  font-weight: 800;
+  text-align: left;
+  max-width: 230px;
+}
 
     .selected-pill {
       color: var(--blue);
