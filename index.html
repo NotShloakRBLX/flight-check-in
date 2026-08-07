@@ -1035,6 +1035,8 @@
     let activeFlight = null;
     let activeStep = 0;
     let passengerSelected = false;
+    let checkInCompleting = false;
+    let confirmationVisible = false;
 
     function escapeHTML(value) {
       return String(value ?? "")
@@ -1527,6 +1529,8 @@
     }
 
     function renderConfirmationPage() {
+      confirmationVisible = true;
+      checkInCompleting = false;
       progressWrap.classList.add("hidden");
       renderHero();
 
@@ -1630,6 +1634,7 @@
     async function completeCheckIn() {
       if (!activeFlight || !activeFlight.id) return;
 
+      checkInCompleting = true;
       showLoadingModal();
 
       try {
@@ -1653,6 +1658,7 @@
           renderConfirmationPage();
         }, 450);
       } catch (error) {
+        checkInCompleting = false;
         console.error("Check in failed:", error);
         modalBox.classList.remove("success");
         modalTitle.textContent = "Check in failed";
@@ -1689,6 +1695,19 @@
       };
 
       if (flight.checkedIn === true) {
+        if (checkInCompleting || confirmationVisible) {
+          activeFlight = {
+            ...activeFlight,
+            ...flight
+          };
+
+          if (confirmationVisible) {
+            renderHero();
+          }
+
+          return;
+        }
+
         showUnavailable("Already checked in", "Your boarding pass is already available on the main flight site.");
         return;
       }
