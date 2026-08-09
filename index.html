@@ -1202,13 +1202,47 @@
       return "";
     }
 
-    function getEntryReminderText(flight) {
-      if (flight?.usPreclearance === true) {
-        return `You must complete US Preclearance at ${flight.departureAirport || "your departure airport"}.`;
-      }
+    function hasInternationalUSCheckInRequirement(flight) {
+  return flight?.internationalUSArrival === true || flight?.internationalUSDeparture === true;
+}
 
-      return `You must complete US Customs at ${flight.arrivalAirport || "your arrival airport"}.`;
-    }
+function getInternationalStepTitle(flight) {
+  return flight?.internationalUSDeparture === true ? "Departure details" : "Arrival details";
+}
+
+function getInternationalNoticeTitle(flight) {
+  return flight?.internationalUSDeparture === true
+    ? "International departure requires a valid passport"
+    : "International travel requires a valid passport";
+}
+
+function getInternationalNoticeText(flight) {
+  return flight?.internationalUSDeparture === true
+    ? "Make sure your passport is valid before departing the United States. You may need to complete document verification before this trip can be completed."
+    : "Make sure your passport is valid before entering the United States. You may need to complete customs or preclearance before this trip can be completed.";
+}
+
+function getInternationalAirportLabel(flight) {
+  return flight?.internationalUSDeparture === true ? "Departure" : "Arrival";
+}
+
+function getInternationalAirportValue(flight) {
+  return flight?.internationalUSDeparture === true
+    ? flight.departureAirport || "DEP"
+    : flight.arrivalAirport || "ARR";
+}
+
+function getEntryReminderText(flight) {
+  if (flight?.internationalUSDeparture === true) {
+    return `Passport verification is required for your international departure from ${flight.departureAirport || "your departure airport"}.`;
+  }
+
+  if (flight?.usPreclearance === true) {
+    return `You must complete US Preclearance at ${flight.departureAirport || "your departure airport"}.`;
+  }
+
+  return `You must complete US Customs at ${flight.arrivalAirport || "your arrival airport"}.`;
+}
 
         function hasPriorityBoardingStatus(flight) {
       return flight?.premiumSeat === true || flight?.premiumEconomySeat === true;
@@ -1221,9 +1255,9 @@
         steps.push("Boarding");
       }
 
-      if (activeFlight?.internationalUSArrival === true) {
-        steps.push("Arrival");
-      }
+      if (hasInternationalUSCheckInRequirement(activeFlight)) {
+  steps.push("Arrival");
+}
 
       return steps;
     }
@@ -1487,38 +1521,38 @@
     }
     
     function renderArrivalStep() {
-      stepPanel.innerHTML = `
-        <h2 class="panel-title">Arrival details</h2>
+  stepPanel.innerHTML = `
+    <h2 class="panel-title">${escapeHTML(getInternationalStepTitle(activeFlight))}</h2>
 
-        <section class="arrival-card">
-          <div class="passport-notice">
-            <img src="./cbp.png" alt="CBP logo" onerror="this.style.display='none';" />
-            <div>
-              <div class="notice-title">International travel requires a valid passport</div>
-              <div class="notice-text">Make sure your passport is valid before entering the United States. You may need to complete customs or preclearance before this trip can be completed.</div>
-            </div>
-          </div>
-
-          <div class="arrival-meta">
-            <div class="detail-stat">
-              <div class="detail-label">Arrival</div>
-              <div class="detail-value">${escapeHTML(activeFlight.arrivalAirport || "ARR")}</div>
-            </div>
-
-            <div class="detail-stat">
-              <div class="detail-label">Traveler</div>
-              <div class="detail-value">Shloak Patel</div>
-            </div>
-          </div>
-        </section>
-
-        <div class="button-row">
-          <button class="continue-button" id="continueButton" type="button">Check in</button>
+    <section class="arrival-card">
+      <div class="passport-notice">
+        <img src="./cbp.png" alt="CBP logo" onerror="this.style.display='none';" />
+        <div>
+          <div class="notice-title">${escapeHTML(getInternationalNoticeTitle(activeFlight))}</div>
+          <div class="notice-text">${escapeHTML(getInternationalNoticeText(activeFlight))}</div>
         </div>
-      `;
+      </div>
 
-      document.getElementById("continueButton").addEventListener("click", completeCheckIn);
-    }
+      <div class="arrival-meta">
+        <div class="detail-stat">
+          <div class="detail-label">${escapeHTML(getInternationalAirportLabel(activeFlight))}</div>
+          <div class="detail-value">${escapeHTML(getInternationalAirportValue(activeFlight))}</div>
+        </div>
+
+        <div class="detail-stat">
+          <div class="detail-label">Traveler</div>
+          <div class="detail-value">Shloak Patel</div>
+        </div>
+      </div>
+    </section>
+
+    <div class="button-row">
+      <button class="continue-button" id="continueButton" type="button">Check in</button>
+    </div>
+  `;
+
+  document.getElementById("continueButton").addEventListener("click", completeCheckIn);
+}
 
     function renderBoardingPassPreview() {
       const passClass = getBoardingPassClass(activeFlight);
@@ -1555,7 +1589,7 @@
 }
     
     function renderEntryReminder() {
-      if (activeFlight?.internationalUSArrival !== true) return "";
+      if (!hasInternationalUSCheckInRequirement(activeFlight)) return "";
 
       return `
         <section class="passport-notice entry-reminder">
