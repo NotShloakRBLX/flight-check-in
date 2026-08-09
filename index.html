@@ -1823,11 +1823,12 @@ ${renderEntryReminder()}
       renderStep();
     }
 
-    if (!flightId) {
-      showUnavailable("This site is locked", "Open check in from a specific flight on the main site.");
-    }
+    function startCheckInSite() {
+  if (!flightId) {
+    showUnavailable("This site is locked", "Open check in from a specific flight on the main site.");
+  }
 
-    onSnapshot(collection(db, "flights"), (snapshot) => {
+  onSnapshot(collection(db, "flights"), (snapshot) => {
       if (!flightId) return;
 
       const flightDoc = snapshot.docs.find((item) => item.id === flightId);
@@ -1873,10 +1874,13 @@ ${renderEntryReminder()}
       activeFlight = flight;
       renderHero();
       renderProgress();
-    }, (error) => {
+        }, (error) => {
       console.error("Error loading flight:", error);
       showUnavailable("Unable to load check in", "Reload the page and try again.");
     });
+}
+
+requireOwnerAuth(startCheckInSite);
   </script>
 </body>
 </html>
