@@ -982,6 +982,30 @@
         padding: 20px;
       }
     }
+    .trip-hero { display:block; padding:0; }
+    .trip-fold-card { border:1px solid #ffffff29; border-radius:22px; background:linear-gradient(145deg,#242d39,#171d27); overflow:hidden; margin-bottom:16px; }
+    .trip-hero .trip-fold-card { border:0; margin:0; background:none; }
+    .trip-fold-button { display:grid; grid-template-columns:38px minmax(0,1fr) 20px; align-items:center; gap:12px; width:100%; padding:20px; border:0; background:transparent; color:#fff; font:inherit; text-align:left; cursor:pointer; }
+    .trip-fold-button img { width:38px; height:38px; object-fit:contain; }
+    .trip-fold-button strong { display:block; font-size:21px; line-height:1.25; overflow-wrap:anywhere; }
+    .trip-fold-button small { display:block; margin-top:6px; color:#aeb8c6; font-size:13px; line-height:1.5; }
+    .trip-fold-button.trip-title-button { grid-template-columns:20px minmax(0,1fr); }
+    .trip-title-button strong { font-size:28px; font-weight:800; }
+    .trip-chevron { width:12px; height:12px; border-right:2px solid currentColor; border-bottom:2px solid currentColor; transform:rotate(45deg) translateY(-3px); transition:transform .35s ease; }
+    .trip-fold-button[aria-expanded=true] .trip-chevron { transform:rotate(225deg) translate(-2px,-2px); }
+    .trip-fold { display:grid; grid-template-rows:0fr; opacity:0; transition:grid-template-rows .42s cubic-bezier(.22,1,.36,1),opacity .3s ease; }
+    .trip-fold-card.open .trip-fold { grid-template-rows:1fr; opacity:1; }
+    .trip-fold-inner { min-height:0; overflow:hidden; }
+    .trip-flight-row { display:grid; grid-template-columns:36px minmax(0,1fr); align-items:center; gap:12px; padding:16px 0; border-top:1px solid #ffffff24; }
+    .trip-flight-row img { width:36px; height:36px; object-fit:contain; }
+    .trip-flight-row strong { font-size:17px; }
+    .trip-flight-row small { display:block; color:#aeb8c6; font-size:13px; margin-top:5px; line-height:1.5; }
+    .trip-flight-list { padding:0 20px 5px; }
+    .trip-fold .details-card { border:0; border-radius:0; margin:0; background:transparent; }
+    .trip-fold .boarding-pass-preview, .trip-fold .notice-card { margin:14px; }
+    .trip-flight-label { margin:18px 0 10px; color:#aeb8c6; font-weight:700; font-size:15px; line-height:1.5; }
+    @media(max-width:360px) { .trip-fold-button { padding:16px; gap:10px; } .trip-fold-button strong { font-size:19px; } .trip-title-button strong { font-size:25px; } }
+    @media(prefers-reduced-motion:reduce) { .trip-fold,.trip-chevron { transition:none; } }
   </style>
 </head>
 
@@ -1034,6 +1058,7 @@
       doc,
       onSnapshot,
       updateDoc,
+      runTransaction,
       serverTimestamp
     } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
 
@@ -1130,12 +1155,74 @@ function requireOwnerAuth(startApp) {
 
     const params = new URLSearchParams(window.location.search);
     const flightId = params.get("flightId") || "";
+    const requestedTripId=params.get("tripId") || "";
+    let activeTrip=null,sectionDirection=params.get("direction") || "depart",sectionFlights=[];
+    let checkInFlightsCache=new Map(),checkInTripsCache=new Map(),checkInFlightsLoaded=false,checkInTripsLoaded=false;
+    const expandedTripPanels=new Set();
     const returnUrl = params.get("returnUrl") || "";
 
     let activeFlight = null;
     let activeStep = 0;
     let passengerSelected = false;
     let checkInCompleting = false;
+
+    // TRIP_CHECKIN_CORE_START
+    function checkInSectionFlights(trip,direction,cache) {
+      const legs=trip?.legs?.filter(leg=>leg.direction === direction) || [];
+      return legs.map(leg=>cache.get(leg.flightId || leg.flight?.id)).filter(Boolean);
+    }
+    function tripSectionOpen(flights,now=Date.now()) {
+      const first=flights[0];
+      if (!first || (first.phase && first.phase !== "scheduled")) return false;
+      const departure=getDepartureDateTime(first)?.getTime();
+      return Number.isFinite(departure) && departure>now && (first.checkInOpened === true || departure-now<=86400000);
+    }
+    async function checkInTripSection(tripId,direction,expectedIds) {
+      if (!["depart","return"].includes(direction)) throw new Error("Invalid trip section.");
+      return runTransaction(db,async transaction=>{
+        const snapshot=await transaction.get(doc(db,"trips",tripId));
+        if (!snapshot.exists() || snapshot.data().status !== "booked") throw new Error("This trip is no longer available.");
+        const legs=snapshot.data().legs.filter(leg=>leg.direction === direction);
+        const ids=legs.map(leg=>leg.flightId || leg.flight.id);
+        if (ids.length !== expectedIds.length || ids.some((id,index)=>id !== expectedIds[index])) throw new Error("Your itinerary changed. Reload check in.");
+        const rows=[];
+        for (const id of ids) {
+          const ref=doc(db,"flights",id),flight=await transaction.get(ref);
+          if (!flight.exists() || flight.data().tripId !== tripId) throw new Error("A flight is no longer available.");
+          rows.push({ref,flight:{id,...flight.data()}});
+        }
+        if (rows.every(row=>row.flight.checkedIn === true)) return;
+        if (!tripSectionOpen(rows.map(row=>row.flight)) || rows.some(row=>row.flight.phase && row.flight.phase !== "scheduled")) throw new Error("Check in is not available for this section.");
+        for (const {ref,flight} of rows) {
+          if (flight.checkedIn === true) continue;
+          transaction.update(ref,{checkedIn:true,checkedInAt:serverTimestamp(),checkInOpened:true,
+            checkInOpenedAt:flight.checkInOpenedAt || serverTimestamp()});
+        }
+      });
+    }
+    // TRIP_CHECKIN_CORE_END
+
+    function checkInFlights() { return activeTrip ? sectionFlights : [activeFlight].filter(Boolean); }
+    function tripFlightLabel(flight) { return `<div class="trip-flight-label">${escapeHTML(flight.airline)} ${escapeHTML(flight.flightNumber)} &bull; ${escapeHTML(flight.departureAirport)} &rarr; ${escapeHTML(flight.arrivalAirport)}</div>`; }
+    function tripFlightSummary(flight) {
+      return `<img src="${getAirlineLogoPath(flight.airline)}" alt="${escapeHTML(flight.airline)}"><span><strong>${escapeHTML(flight.departureAirport)} &rarr; ${escapeHTML(flight.arrivalAirport)}</strong><small>${escapeHTML(flight.cityDeparture)} to ${escapeHTML(flight.cityArrival)}<br>${escapeHTML(formatDate(flight.flightDateRaw))} &bull; ${escapeHTML(flight.airline)} ${escapeHTML(flight.flightNumber)}</small></span>`;
+    }
+    function tripAccordion(id,summary,content,hero=false) {
+      const open=expandedTripPanels.has(id);
+      return `<section class="trip-fold-card ${open ? 'open' : ''}"><button type="button" class="trip-fold-button ${hero ? 'trip-title-button' : ''}" data-trip-fold="${escapeHTML(id)}" aria-expanded="${open}" aria-controls="fold-${escapeHTML(id)}">${hero ? '<span class="trip-chevron" aria-hidden="true"></span>' : ''}${summary}${hero ? '' : '<span class="trip-chevron" aria-hidden="true"></span>'}</button><div class="trip-fold" id="fold-${escapeHTML(id)}" ${open ? '' : 'inert'}><div class="trip-fold-inner">${content}</div></div></section>`;
+    }
+    function checkInCardMarkup(html) {
+      const template=document.createElement("template");template.innerHTML=html;
+      return template.content.querySelector("section").outerHTML;
+    }
+    document.addEventListener("click",event=>{
+      const button=event.target.closest("[data-trip-fold]");if (!button) return;
+      const open=button.getAttribute("aria-expanded") !== "true",id=button.dataset.tripFold;
+      button.setAttribute("aria-expanded",String(open));
+      button.closest(".trip-fold-card").classList.toggle("open",open);
+      document.getElementById(button.getAttribute("aria-controls")).inert=!open;
+      if (open) expandedTripPanels.add(id);else expandedTripPanels.delete(id);
+    });
     let confirmationVisible = false;
 
     function escapeHTML(value) {
@@ -1324,11 +1411,11 @@ function getEntryReminderText(flight) {
     function getSteps() {
       const steps = ["Passenger", "Advisories", "Flight"];
 
-      if (hasPriorityBoardingStatus(activeFlight)) {
+      if (checkInFlights().some(hasPriorityBoardingStatus)) {
         steps.push("Boarding");
       }
 
-      if (hasInternationalUSCheckInRequirement(activeFlight)) {
+      if (checkInFlights().some(hasInternationalUSCheckInRequirement)) {
   steps.push("Arrival");
 }
 
@@ -1348,6 +1435,12 @@ function getEntryReminderText(flight) {
     }
 
     function renderHero() {
+      flightHero.classList.toggle("trip-hero",!!activeTrip);
+      if (activeTrip) {
+        const rows=sectionFlights.map(flight=>`<div class="trip-flight-row"><img src="${getAirlineLogoPath(flight.airline)}" alt="${escapeHTML(flight.airline)}"><div><strong>${escapeHTML(flight.departureAirport)} &rarr; ${escapeHTML(flight.arrivalAirport)}</strong><small>${escapeHTML(formatDate(flight.flightDateRaw))} &bull; ${escapeHTML(flight.airline)} ${escapeHTML(flight.flightNumber)}</small></div></div>`).join("");
+        flightHero.innerHTML=tripAccordion(`hero-${sectionDirection}`,`<strong>${escapeHTML(activeTrip.name)}</strong>`,`<div class="trip-flight-list">${rows}</div>`,true);
+        return;
+      }
       const airline = activeFlight.airline || "AA";
 
       flightHero.innerHTML = `
@@ -1406,7 +1499,7 @@ function getEntryReminderText(flight) {
         <button class="passenger-card ${passengerSelected ? "selected" : ""}" id="passengerCard" type="button">
           <div>
             <div class="passenger-name">${PASSENGER_NAME}</div>
-            <div class="passenger-seat">Seat ${escapeHTML(activeFlight.assignedSeat || "--")} &bull; ${escapeHTML(activeFlight.seatCabin || "Economy")}</div>
+            <div class="passenger-seat">${activeTrip ? `${sectionDirection === "depart" ? "Depart" : "Return"} &bull; ${sectionFlights.length} flights` : `Seat ${escapeHTML(activeFlight.assignedSeat || "--")} &bull; ${escapeHTML(activeFlight.seatCabin || "Economy")}`}</div>
           </div>
           <div class="selected-pill">Selected</div>
         </button>
@@ -1478,26 +1571,26 @@ function getEntryReminderText(flight) {
       });
     }
 
-    function renderFlightDetailsStep() {
-      const departure = getDepartureDateTime(activeFlight);
-      const arrival = getArrivalDateTime(activeFlight);
+    function renderFlightDetailsStep(flight=activeFlight,embedded=false) {
+      const departure = getDepartureDateTime(flight);
+      const arrival = getArrivalDateTime(flight);
             const steps = getSteps();
       const nextStep = steps.indexOf("Flight") + 1;
       const nextStepName = steps[nextStep];
       const hasNextStep = nextStep < steps.length;
 
-      stepPanel.innerHTML = `
-        <h2 class="panel-title">Flight details</h2>
+      const html = `
+        ${embedded ? '' : '<h2 class="panel-title">Flight details</h2>'}
 
         <section class="details-card">
           <div class="details-route-band">
             <div class="details-route">
-              <span>${escapeHTML(activeFlight.departureAirport || "DEP")}</span>
+              <span>${escapeHTML(flight.departureAirport || "DEP")}</span>
               &rarr;
-              <span>${escapeHTML(activeFlight.arrivalAirport || "ARR")}</span>
+              <span>${escapeHTML(flight.arrivalAirport || "ARR")}</span>
             </div>
             <div class="details-subroute">
-              ${escapeHTML(activeFlight.cityDeparture || "Departure")} to ${escapeHTML(activeFlight.cityArrival || "Arrival")}
+              ${escapeHTML(flight.cityDeparture || "Departure")} to ${escapeHTML(flight.cityArrival || "Arrival")}
             </div>
           </div>
 
@@ -1505,8 +1598,8 @@ function getEntryReminderText(flight) {
             <div class="timeline-row">
               <div>
                 <div class="timeline-label">Departure</div>
-                <div class="timeline-airport">${escapeHTML(activeFlight.departureAirport || "DEP")}</div>
-                <div class="timeline-city">${escapeHTML(activeFlight.cityDeparture || "Departure")}</div>
+                <div class="timeline-airport">${escapeHTML(flight.departureAirport || "DEP")}</div>
+                <div class="timeline-city">${escapeHTML(flight.cityDeparture || "Departure")}</div>
               </div>
               <div class="timeline-time">${escapeHTML(formatTime(departure))}</div>
             </div>
@@ -1516,8 +1609,8 @@ function getEntryReminderText(flight) {
             <div class="timeline-row">
               <div>
                 <div class="timeline-label">Arrival</div>
-                <div class="timeline-airport">${escapeHTML(activeFlight.arrivalAirport || "ARR")}</div>
-                <div class="timeline-city">${escapeHTML(activeFlight.cityArrival || "Arrival")}</div>
+                <div class="timeline-airport">${escapeHTML(flight.arrivalAirport || "ARR")}</div>
+                <div class="timeline-city">${escapeHTML(flight.cityArrival || "Arrival")}</div>
               </div>
               <div class="timeline-time">${escapeHTML(formatTime(arrival))}</div>
             </div>
@@ -1526,17 +1619,17 @@ function getEntryReminderText(flight) {
           <div class="details-grid">
             <div class="detail-stat">
               <div class="detail-label">Flight</div>
-              <div class="detail-value">${escapeHTML(activeFlight.airline || "AA")} ${escapeHTML(activeFlight.flightNumber || "0000")}</div>
+              <div class="detail-value">${escapeHTML(flight.airline || "AA")} ${escapeHTML(flight.flightNumber || "0000")}</div>
             </div>
 
             <div class="detail-stat">
               <div class="detail-label">Seat</div>
-              <div class="detail-value">${escapeHTML(activeFlight.assignedSeat || "--")}</div>
+              <div class="detail-value">${escapeHTML(flight.assignedSeat || "--")}</div>
             </div>
 
             <div class="detail-stat">
               <div class="detail-label">Code</div>
-              <div class="detail-value">${escapeHTML(getReservationCode(activeFlight))}</div>
+              <div class="detail-value">${escapeHTML(getReservationCode(flight))}</div>
             </div>
           </div>
         </section>
@@ -1545,6 +1638,8 @@ function getEntryReminderText(flight) {
                     <button class="continue-button" id="continueButton" type="button">${hasNextStep ? "Continue" : "Check in"}</button>
         </div>
       `;
+      if (embedded) return checkInCardMarkup(html);
+      stepPanel.innerHTML=activeTrip ? `<h2 class="panel-title">Flight details</h2>${sectionFlights.map(item=>tripAccordion(`details-${item.id}`,tripFlightSummary(item),renderFlightDetailsStep(item,true))).join('')}<div class="button-row"><button class="continue-button" id="continueButton" type="button">${hasNextStep ? 'Continue' : 'Check in'}</button></div>` : html;
 
             document.getElementById("continueButton").addEventListener("click", () => {
         if (hasNextStep) {
@@ -1556,15 +1651,15 @@ function getEntryReminderText(flight) {
       });
     }
 
-    function renderBoardingStatusStep() {
+    function renderBoardingStatusStep(flight=activeFlight,embedded=false) {
       const steps = getSteps();
       const nextStep = steps.indexOf("Boarding") + 1;
       const hasArrivalStep = steps[nextStep] === "Arrival";
-      const isPremiumEconomy = activeFlight.premiumEconomySeat === true;
+      const isPremiumEconomy = flight.premiumEconomySeat === true;
       const badgeClass = isPremiumEconomy ? "premium-economy" : "";
-      const seat = activeFlight.assignedSeat || "--";
+      const seat = flight.assignedSeat || "--";
 
-      stepPanel.innerHTML = `
+      const html = `
         <h2 class="panel-title">Boarding status</h2>
 
         <section class="details-card boarding-status-card">
@@ -1582,6 +1677,8 @@ function getEntryReminderText(flight) {
           <button class="continue-button" id="continueButton" type="button">${hasArrivalStep ? "Continue" : "Check in"}</button>
         </div>
       `;
+      if (embedded) return checkInCardMarkup(html);
+      stepPanel.innerHTML=activeTrip ? `<h2 class="panel-title">Boarding status</h2>${sectionFlights.filter(hasPriorityBoardingStatus).map(item=>tripFlightLabel(item)+renderBoardingStatusStep(item,true)).join('')}<div class="button-row"><button class="continue-button" id="continueButton" type="button">${hasArrivalStep ? 'Continue' : 'Check in'}</button></div>` : html;
 
       document.getElementById("continueButton").addEventListener("click", () => {
         if (hasArrivalStep) {
@@ -1593,23 +1690,23 @@ function getEntryReminderText(flight) {
       });
     }
     
-    function renderArrivalStep() {
-  stepPanel.innerHTML = `
-    <h2 class="panel-title">${escapeHTML(getInternationalStepTitle(activeFlight))}</h2>
+    function renderArrivalStep(flight=activeFlight,embedded=false) {
+  const html = `
+    <h2 class="panel-title">${escapeHTML(getInternationalStepTitle(flight))}</h2>
 
     <section class="arrival-card">
       <div class="passport-notice">
         <img src="./cbp.png" alt="CBP logo" onerror="this.style.display='none';" />
         <div>
-          <div class="notice-title">${escapeHTML(getInternationalNoticeTitle(activeFlight))}</div>
-          <div class="notice-text">${escapeHTML(getInternationalNoticeText(activeFlight))}</div>
+          <div class="notice-title">${escapeHTML(getInternationalNoticeTitle(flight))}</div>
+          <div class="notice-text">${escapeHTML(getInternationalNoticeText(flight))}</div>
         </div>
       </div>
 
       <div class="arrival-meta">
         <div class="detail-stat">
-          <div class="detail-label">${escapeHTML(getInternationalAirportLabel(activeFlight))}</div>
-          <div class="detail-value">${escapeHTML(getInternationalAirportValue(activeFlight))}</div>
+          <div class="detail-label">${escapeHTML(getInternationalAirportLabel(flight))}</div>
+          <div class="detail-value">${escapeHTML(getInternationalAirportValue(flight))}</div>
         </div>
 
         <div class="detail-stat">
@@ -1623,53 +1720,55 @@ function getEntryReminderText(flight) {
       <button class="continue-button" id="continueButton" type="button">Check in</button>
     </div>
   `;
+  if (embedded) return checkInCardMarkup(html);
+  stepPanel.innerHTML=activeTrip ? `<h2 class="panel-title">Travel requirements</h2>${sectionFlights.filter(hasInternationalUSCheckInRequirement).map(item=>tripFlightLabel(item)+renderArrivalStep(item,true)).join('')}<div class="button-row"><button class="continue-button" id="continueButton" type="button">Check in</button></div>` : html;
 
   document.getElementById("continueButton").addEventListener("click", completeCheckIn);
 }
 
-    function renderBoardingPassPreview() {
-      const passClass = getBoardingPassClass(activeFlight);
+    function renderBoardingPassPreview(flight=activeFlight) {
+      const passClass = getBoardingPassClass(flight);
 
       return `
         <section class="boarding-pass-preview ${passClass}">
           <div class="pass-label">Boarding code</div>
-          <div class="pass-code">${escapeHTML(getBoardingCode(activeFlight))}</div>
-          <div class="pass-group">${escapeHTML(getBoardingGroupText(activeFlight))}</div>
+          <div class="pass-code">${escapeHTML(getBoardingCode(flight))}</div>
+          <div class="pass-group">${escapeHTML(getBoardingGroupText(flight))}</div>
 
           <div class="pass-bottom">
             <div>
               <div class="pass-small-label">Seat</div>
-              <div class="pass-seat">${escapeHTML(activeFlight.assignedSeat || "--")}</div>
+              <div class="pass-seat">${escapeHTML(flight.assignedSeat || "--")}</div>
             </div>
 
-            <div class="pass-cabin">${escapeHTML(activeFlight.seatCabin || "Economy")}</div>
+            <div class="pass-cabin">${escapeHTML(flight.seatCabin || "Economy")}</div>
           </div>
         </section>
       `;
     }
 
-    function renderPriorityBoardingConfirmation() {
-  if (!hasPriorityBoardingStatus(activeFlight)) return "";
+    function renderPriorityBoardingConfirmation(flight=activeFlight) {
+  if (!hasPriorityBoardingStatus(flight)) return "";
 
   return `
     <section class="details-card confirmation-priority-card">
       <div class="confirmation-priority-top">PRIORITY BOARDING</div>
       <div class="confirmation-priority-bottom">
-        You are boarding in ${escapeHTML(getBoardingGroupText(activeFlight))}
+        You are boarding in ${escapeHTML(getBoardingGroupText(flight))}
       </div>
     </section>
   `;
 }
     
-    function renderEntryReminder() {
-      if (!hasInternationalUSCheckInRequirement(activeFlight)) return "";
+    function renderEntryReminder(flight=activeFlight) {
+      if (!hasInternationalUSCheckInRequirement(flight)) return "";
 
       return `
         <section class="passport-notice entry-reminder">
           <img src="./cbp.png" alt="CBP logo" onerror="this.style.display='none';" />
           <div>
             <div class="notice-title">US Customs and Border Protection</div>
-            <div class="notice-text">${escapeHTML(getEntryReminderText(activeFlight))}</div>
+            <div class="notice-text">${escapeHTML(getEntryReminderText(flight))}</div>
           </div>
         </section>
       `;
@@ -1730,6 +1829,7 @@ ${renderEntryReminder()}
         </div>
       `;
 
+      if (activeTrip) stepPanel.innerHTML=`<h2 class="panel-title">Check in confirmation</h2>${sectionFlights.map(flight=>tripAccordion(`pass-${flight.id}`,tripFlightSummary(flight),renderPriorityBoardingConfirmation(flight)+renderBoardingPassPreview(flight)+renderEntryReminder(flight))).join('')}<div class="button-row"><button class="continue-button" id="continueButton" type="button">Continue</button></div>`;
       document.getElementById("continueButton").addEventListener("click", () => {
         if (returnUrl) {
           window.location.href = returnUrl;
@@ -1775,12 +1875,12 @@ ${renderEntryReminder()}
     function showLoadingModal() {
       modalBox.classList.remove("success");
       modalTitle.textContent = "Checking you in";
-      modalText.textContent = "Issuing boarding pass...";
+      modalText.textContent = activeTrip ? "Issuing boarding passes..." : "Issuing boarding pass...";
       loadingModal.classList.remove("hidden");
     }
 
     async function completeCheckIn() {
-      if (!activeFlight || !activeFlight.id) return;
+      if (!activeFlight || !activeFlight.id || checkInCompleting) return;
 
       checkInCompleting = true;
       showLoadingModal();
@@ -1788,7 +1888,10 @@ ${renderEntryReminder()}
       try {
         await new Promise((resolve) => setTimeout(resolve, 5000));
 
-        await updateDoc(doc(db, "flights", activeFlight.id), {
+        if (activeTrip) {
+          await checkInTripSection(activeTrip.id,sectionDirection,sectionFlights.map(flight=>flight.id));
+          sectionFlights=sectionFlights.map(flight=>({...flight,checkedIn:true,checkInOpened:true}));
+        } else await updateDoc(doc(db, "flights", activeFlight.id), {
           checkedIn: true,
           checkedInAt: serverTimestamp(),
           checkInOpened: true,
@@ -1824,11 +1927,18 @@ ${renderEntryReminder()}
     }
 
     function startCheckInSite() {
-  if (!flightId) {
+  onSnapshot(collection(db,"trips"),snapshot=>{
+    checkInTripsCache=new Map(snapshot.docs.map(item=>[item.id,{id:item.id,...item.data()}]));
+    checkInTripsLoaded=true;refreshTripCheckIn();
+  },error=>{console.error("Unable to load trips",error);showUnavailable("Unable to load check in","Reload the page and try again.");});
+  if (!flightId && !requestedTripId) {
     showUnavailable("This site is locked", "Open check in from a specific flight on the main site.");
   }
 
   onSnapshot(collection(db, "flights"), (snapshot) => {
+      checkInFlightsCache=new Map(snapshot.docs.map(item=>[item.id,{id:item.id,...item.data()}]));
+      checkInFlightsLoaded=true;
+      if (requestedTripId || checkInFlightsCache.get(flightId)?.tripId || activeTrip) { refreshTripCheckIn();return; }
       if (!flightId) return;
 
       const flightDoc = snapshot.docs.find((item) => item.id === flightId);
@@ -1879,6 +1989,29 @@ ${renderEntryReminder()}
       showUnavailable("Unable to load check in", "Reload the page and try again.");
     });
 }
+
+function refreshTripCheckIn() {
+  if (!checkInFlightsLoaded || !checkInTripsLoaded) return;
+  const selected=checkInFlightsCache.get(flightId);
+  const id=requestedTripId || selected?.tripId || activeTrip?.id;
+  if (!id) return;
+  const trip=checkInTripsCache.get(id);
+  if (!trip || trip.status !== "booked") { showUnavailable("Trip unavailable","This trip is no longer available for check in.");return; }
+  const direction=requestedTripId ? sectionDirection : selected?.tripDirection || sectionDirection;
+  const legs=trip.legs.filter(leg=>leg.direction === direction);
+  const flights=checkInSectionFlights(trip,direction,checkInFlightsCache);
+  if (!legs.length || flights.length !== legs.length) { showUnavailable("Section unavailable","A flight in this section is no longer available.");return; }
+  const starting=!activeTrip;
+  activeTrip=trip;sectionDirection=direction;sectionFlights=flights;activeFlight=flights[0];
+  if (checkInCompleting) return;
+  if (flights.every(flight=>flight.checkedIn === true)) {showCheckIn();if (!confirmationVisible)renderConfirmationPage();else renderHero();return;}
+  if (!tripSectionOpen(flights)) {showUnavailable("Check in unavailable","Check in opens 24 hours before the first flight in this section departs.");return;}
+  showCheckIn();
+  if (starting || unavailableScreen.classList.contains("hidden") && !stepPanel.innerHTML.trim()) {activeStep=0;passengerSelected=false;renderStep();}
+  else {renderHero();renderProgress();}
+}
+
+setInterval(()=>{if (activeTrip && !confirmationVisible && !checkInCompleting && !unavailableScreen.classList.contains("hidden"))refreshTripCheckIn();},1000);
 
 requireOwnerAuth(startCheckInSite);
   </script>
