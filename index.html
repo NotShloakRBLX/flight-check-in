@@ -1249,7 +1249,7 @@ function requireOwnerAuth(startApp) {
 
       if (!departure || !arrival) return arrival;
 
-      if (arrival <= departure || flight.overnight === true) {
+      if (arrival <= departure) {
         arrival.setDate(arrival.getDate() + 1);
       }
 
